@@ -314,7 +314,7 @@ add_component_dir (debug
     )
 add_component_dir (files
     linuxpath androidpath windowspath macospath fixedpath multidircollection collections configurationmanager
-    constrainedfilestream memorystream hash configfileparser openfile constrainedfilestreambuf conversion
+    constrainedfilestream memorystream hash configfileparser openfile constrainedfilestreambuf conversion escape
     istreamptr streamwithbuffer utils
     )
 
@@ -521,6 +521,55 @@ add_component_dir(testing
     util
 )
 
+add_component_dir(openmw-mp
+    Base/BaseActor Base/BaseObject Base/BasePacketProcessor Base/BasePlayer
+    Base/BaseStructs Base/BaseSystem Base/BaseWorldstate
+    Controllers/ActorPacketController Controllers/ObjectPacketController
+    Controllers/PlayerPacketController Controllers/SystemPacketController
+    Controllers/WorldstatePacketController
+    Master/PacketMasterAnnounce Master/PacketMasterQuery Master/PacketMasterUpdate
+    Packets/Actor/ActorPacket Packets/Actor/PacketActorAI Packets/Actor/PacketActorAnimFlags
+    Packets/Actor/PacketActorAnimPlay Packets/Actor/PacketActorAttack Packets/Actor/PacketActorAuthority
+    Packets/Actor/PacketActorCast Packets/Actor/PacketActorCellChange Packets/Actor/PacketActorDeath
+    Packets/Actor/PacketActorEquipment Packets/Actor/PacketActorList Packets/Actor/PacketActorPosition
+    Packets/Actor/PacketActorSpeech Packets/Actor/PacketActorSpellsActive Packets/Actor/PacketActorStatsDynamic
+    Packets/Actor/PacketActorTest
+    Packets/BasePacket
+    Packets/Object/ObjectPacket Packets/Object/PacketClientScriptLocal Packets/Object/PacketConsoleCommand
+    Packets/Object/PacketContainer Packets/Object/PacketDoorDestination Packets/Object/PacketDoorState
+    Packets/Object/PacketMusicPlay Packets/Object/PacketObjectActivate Packets/Object/PacketObjectAnimPlay
+    Packets/Object/PacketObjectAttach Packets/Object/PacketObjectDelete Packets/Object/PacketObjectDialogueChoice
+    Packets/Object/PacketObjectHit Packets/Object/PacketObjectLock Packets/Object/PacketObjectMiscellaneous
+    Packets/Object/PacketObjectMove Packets/Object/PacketObjectPlace Packets/Object/PacketObjectRestock
+    Packets/Object/PacketObjectRotate Packets/Object/PacketObjectScale Packets/Object/PacketObjectSound
+    Packets/Object/PacketObjectSpawn Packets/Object/PacketObjectState Packets/Object/PacketObjectTrap
+    Packets/Object/PacketScriptMemberShort Packets/Object/PacketVideoPlay
+    Packets/PacketPreInit
+    Packets/Player/PacketChatMessage Packets/Player/PacketGUIBoxes Packets/Player/PacketGameSettings
+    Packets/Player/PacketPlayerAlly Packets/Player/PacketPlayerAnimFlags Packets/Player/PacketPlayerAnimPlay
+    Packets/Player/PacketPlayerAttack Packets/Player/PacketPlayerAttribute Packets/Player/PacketPlayerBaseInfo
+    Packets/Player/PacketPlayerBehavior Packets/Player/PacketPlayerBook Packets/Player/PacketPlayerBounty
+    Packets/Player/PacketPlayerCast Packets/Player/PacketPlayerCellChange Packets/Player/PacketPlayerCellState
+    Packets/Player/PacketPlayerCharGen Packets/Player/PacketPlayerClass Packets/Player/PacketPlayerCooldowns
+    Packets/Player/PacketPlayerDeath Packets/Player/PacketPlayerEquipment Packets/Player/PacketPlayerFaction
+    Packets/Player/PacketPlayerInput Packets/Player/PacketPlayerInventory Packets/Player/PacketPlayerItemUse
+    Packets/Player/PacketPlayerJail Packets/Player/PacketPlayerJournal Packets/Player/PacketPlayerLevel
+    Packets/Player/PacketPlayerMiscellaneous Packets/Player/PacketPlayerMomentum Packets/Player/PacketPlayerPosition
+    Packets/Player/PacketPlayerQuickKeys Packets/Player/PacketPlayerReputation
+    Packets/Player/PacketPlayerRest Packets/Player/PacketPlayerResurrect Packets/Player/PacketPlayerShapeshift
+    Packets/Player/PacketPlayerSkill Packets/Player/PacketPlayerSpeech Packets/Player/PacketPlayerSpellbook
+    Packets/Player/PacketPlayerSpellsActive Packets/Player/PacketPlayerStatsDynamic Packets/Player/PacketPlayerTopic
+    Packets/Player/PlayerPacket
+    Packets/System/PacketSystemHandshake Packets/System/SystemPacket
+    Packets/Worldstate/PacketCellReset Packets/Worldstate/PacketClientScriptGlobal
+    Packets/Worldstate/PacketClientScriptSettings Packets/Worldstate/PacketRecordDynamic
+    Packets/Worldstate/PacketWorldCollisionOverride Packets/Worldstate/PacketWorldDestinationOverride
+    Packets/Worldstate/PacketWorldKillCount Packets/Worldstate/PacketWorldMap
+    Packets/Worldstate/PacketWorldRegionAuthority Packets/Worldstate/PacketWorldTime
+    Packets/Worldstate/PacketWorldWeather Packets/Worldstate/WorldstatePacket
+    TimedLog Utils
+    )
+
 if (USE_QT)
     add_component_qt_dir (contentselector
         model/modelitem model/esmfile
@@ -574,7 +623,7 @@ if (MSVC)
     )
 endif()
 
-include_directories(${BULLET_INCLUDE_DIRS} ${CMAKE_CURRENT_BINARY_DIR})
+include_directories(${BULLET_INCLUDE_DIRS} ${CMAKE_CURRENT_BINARY_DIR} /usr/local/include/raknet)
 
 if (OPENMW_USE_SYSTEM_SQLITE3)
     find_package(SQLite3 REQUIRED)
