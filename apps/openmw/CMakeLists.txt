@@ -4,8 +4,8 @@ set(OPENMW_SOURCES
 )
 
 set(OPENMW_RESOURCES
-    ${CMAKE_SOURCE_DIR}/files/windows/openmw.rc
-    ${CMAKE_SOURCE_DIR}/files/windows/openmw.exe.manifest
+    ${CMAKE_SOURCE_DIR}/files/tes3mp/tes3mp.rc
+    ${CMAKE_SOURCE_DIR}/files/tes3mp/tes3mp.exe.manifest
 )
 
 set(OPENMW_HEADERS
@@ -15,7 +15,7 @@ set(OPENMW_HEADERS
     profile.hpp
 )
 
-source_group(apps/openmw FILES main.cpp androidmain.cpp ${OPENMW_SOURCES} ${OPENMW_HEADERS} ${OPENMW_RESOURCES})
+source_group(apps/openmw FILES main.cpp ${OPENMW_SOURCES} ${OPENMW_HEADERS} ${OPENMW_RESOURCES})
 
 add_openmw_dir (mwrender
     actors objects renderingmanager animation rotatecontroller sky skyutil npcanimation esm4npcanimation vismask
@@ -116,6 +116,17 @@ add_openmw_dir (mwbase
     inputmanager windowmanager statemanager luamanager
     )
 
+# Start of tes3mp addition
+add_openmw_dir (mwmp)
+add_openmw_dir (mwmp/GUI)
+add_openmw_dir (mwmp/processors)
+add_openmw_dir (mwmp/processors/system)
+add_openmw_dir (mwmp/processors/player)
+add_openmw_dir (mwmp/processors/actor)
+add_openmw_dir (mwmp/processors/object)
+add_openmw_dir (mwmp/processors/worldstate)
+# End of tes3mp addition
+
 # Main executable
 
 add_library(openmw-lib STATIC
@@ -139,28 +150,31 @@ if (MSVC)
     )
 endif()
 
+# Start of tes3mp change (major)
+#
+# The TES3MP client binary is called "tes3mp" rather than "openmw".
 if(BUILD_OPENMW)
     if (ANDROID)
-        add_library(openmw SHARED
+        add_library(tes3mp SHARED
             main.cpp
-            androidmain.cpp
         )
     else()
-        openmw_add_executable(openmw
+        openmw_add_executable(tes3mp
             ${APPLE_BUNDLE_RESOURCES}
             ${OPENMW_RESOURCES}
             main.cpp
         )
     endif()
 
-    target_link_libraries(openmw openmw-lib)
+    target_link_libraries(tes3mp openmw-lib)
 
     # Workaround necessary to ensure osgAnimation::MatrixLinearSampler dynamic casts work under Clang
     # NOTE: it's unclear whether the broken behavior is spec-compliant
     if (CMAKE_CXX_COMPILER_ID STREQUAL Clang)
-        set_target_properties(openmw PROPERTIES ENABLE_EXPORTS ON)
+        set_target_properties(tes3mp PROPERTIES ENABLE_EXPORTS ON)
     endif()
 endif()
+# End of tes3mp change (major)
 
 # Sound stuff - here so CMake doesn't stupidly recompile EVERYTHING
 # when we change the backend.
@@ -189,6 +203,7 @@ target_link_libraries(openmw-lib
     osg-ffmpeg-videoplayer
     oics
     components
+    ${RakNet_LIBRARY}
 )
 
 if (MSVC AND PRECOMPILE_HEADERS_WITH_MSVC)
@@ -245,16 +260,16 @@ if(APPLE AND BUILD_OPENMW)
     configure_file("${OpenMW_BINARY_DIR}/openmw.cfg" ${BUNDLE_RESOURCES_DIR} COPYONLY)
     configure_file("${OpenMW_BINARY_DIR}/gamecontrollerdb.txt" ${BUNDLE_RESOURCES_DIR} COPYONLY)
 
-    add_custom_command(TARGET openmw
+    add_custom_command(TARGET tes3mp
         POST_BUILD
         COMMAND cp "${OpenMW_BINARY_DIR}/resources/version" "${BUNDLE_RESOURCES_DIR}/resources")
 
     find_library(COCOA_FRAMEWORK Cocoa)
     find_library(IOKIT_FRAMEWORK IOKit)
-    target_link_libraries(openmw ${COCOA_FRAMEWORK} ${IOKIT_FRAMEWORK})
+    target_link_libraries(tes3mp ${COCOA_FRAMEWORK} ${IOKIT_FRAMEWORK})
 
     if (FFmpeg_FOUND)
-        target_link_options(openmw PRIVATE "LINKER:SHELL:-framework CoreVideo"
+        target_link_options(tes3mp PRIVATE "LINKER:SHELL:-framework CoreVideo"
                                            "LINKER:SHELL:-framework CoreMedia"
                                            "LINKER:SHELL:-framework VideoToolbox"
                                            "LINKER:SHELL:-framework AudioToolbox"
@@ -266,11 +281,11 @@ if (BUILD_WITH_CODE_COVERAGE)
     target_compile_options(openmw-lib PRIVATE --coverage)
     target_link_libraries(openmw-lib gcov)
     if (NOT ANDROID AND BUILD_OPENMW)
-        target_compile_options(openmw PRIVATE --coverage)
-        target_link_libraries(openmw gcov)
+        target_compile_options(tes3mp PRIVATE --coverage)
+        target_link_libraries(tes3mp gcov)
     endif()
 endif()
 
 if (NOT APPLE AND BUILD_OPENMW)
-    install(TARGETS openmw ${runtime_dependency_arguments})
+    install(TARGETS tes3mp ${runtime_dependency_arguments})
 endif()

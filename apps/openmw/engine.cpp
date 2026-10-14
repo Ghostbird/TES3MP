@@ -42,6 +42,19 @@
 
 #include <components/loadinglistener/asynclistener.hpp>
 #include <components/loadinglistener/loadinglistener.hpp>
+/*
+    Start of tes3mp addition
+
+    Include additional headers for multiplayer purposes
+*/
+#include <components/openmw-mp/TimedLog.hpp>
+#include "mwmp/Main.hpp"
+#include "mwmp/GUIController.hpp"
+/*
+    End of tes3mp addition
+*/
+
+#include <components/detournavigator/navigator.hpp>
 
 #include <components/misc/frameratelimiter.hpp>
 
@@ -184,6 +197,40 @@ void OMW::Engine::executeLocalScripts()
     {
         MWScript::InterpreterContext interpreterContext(&script.second.getRefData().getLocals(), script.second);
         mScriptManager->run(script.first, interpreterContext);
+        MWScript::InterpreterContext interpreterContext (
+            &script.second.getRefData().getLocals(), script.second);
+
+        /*
+            Start of tes3mp addition
+
+            By comparing its name with a list of script names, check if this script
+            is allowed to send packets about its value changes
+
+            If it is, set a tes3mp-only boolean to true in its interpreterContext
+        */
+        if (mwmp::Main::isValidPacketScript(script.first))
+        {
+            interpreterContext.sendPackets = true;
+        }
+        /*
+            End of tes3mp addition
+        */
+
+        /*
+            Start of tes3mp addition
+
+            Mark this InterpreterContext as having a SCRIPT_LOCAL context
+            and as currently running the script with this name, so that
+            packets sent by the Interpreter can have their
+            origin determined by serverside scripts
+        */
+        interpreterContext.trackContextType(Interpreter::Context::SCRIPT_LOCAL);
+        interpreterContext.trackCurrentScriptName(script.first);
+        /*
+            End of tes3mp addition
+        */
+
+        mEnvironment.getScriptManager()->run (script.first, interpreterContext);
     }
 }
 
@@ -219,6 +266,16 @@ bool OMW::Engine::frame(unsigned frameNumber, float frametime)
             {
                 mSoundManager->pausePlayback();
                 return false;
+                mEnvironment.getSoundManager()->pausePlayback();
+                /*
+                    Start of tes3mp change (major)
+
+                    The game cannot be paused in multiplayer, so prevent that from happening even here
+                */
+                //return false;
+                /*
+                    End of tes3mp change (major)
+                */
             }
             else
                 mSoundManager->resumePlayback();
@@ -234,6 +291,29 @@ bool OMW::Engine::frame(unsigned frameNumber, float frametime)
             // It applies to the game world queued changes from the previous frame.
             mLuaManager->synchronizedUpdate();
         }
+        /*
+            Start of tes3mp addition
+
+            Update multiplayer processing for the current frame
+        */
+        mwmp::Main::frame(frametime);
+        /*
+            End of tes3mp addition
+        */
+
+        // Main menu opened? Then scripts are also paused.
+        bool paused = mEnvironment.getWindowManager()->containsMode(MWGui::GM_MainMenu);
+        
+        /*
+            Start of tes3mp change (major)
+
+            Time should not be frozen in multiplayer, so the paused boolean is always set to
+            false instead
+        */
+        paused = false;
+        /*
+            End of tes3mp change (major)
+        */
 
         // update game state
         {
@@ -242,6 +322,17 @@ bool OMW::Engine::frame(unsigned frameNumber, float frametime)
         }
 
         bool paused = mWorld->getTimeManager()->isPaused();
+        /*
+            Start of tes3mp change (major)
+
+            Whether the GUI is active should have no relevance in multiplayer, so the guiActive
+            boolean is always set to false instead
+        */
+        //bool guiActive = mEnvironment.getWindowManager()->isGuiMode();
+        bool guiActive = false;
+        /*
+            End of tes3mp change (major)
+        */
 
         {
             ScopedProfile<UserStatsType::Script> profile(frameStart, frameNumber, *timer, *stats);
@@ -285,6 +376,18 @@ bool OMW::Engine::frame(unsigned frameNumber, float frametime)
                 MWWorld::Ptr player = mWorld->getPlayerPtr();
                 if (!paused && player.getClass().getCreatureStats(player).isDead())
                     mStateManager->endGame();
+                MWWorld::Ptr player = mEnvironment.getWorld()->getPlayerPtr();
+                /*
+                    Start of tes3mp change (major)
+
+                    In multiplayer, the game should not end when the player dies,
+                    so the code here has been commented out
+                */
+                //if(!guiActive && player.getClass().getCreatureStats(player).isDead())
+                //    mEnvironment.getStateManager()->endGame();
+                /*
+                    End of tes3mp change (major)
+                */
             }
         }
 
@@ -426,6 +529,31 @@ OMW::Engine::~Engine()
     mLuaManager = nullptr;
     mL10nManager = nullptr;
 
+    /*
+        Start of tes3mp addition
+
+        Free up memory allocated by multiplayer's GUIController, but make sure
+        mwmp::Main has actually been initialized
+    */
+    if (mwmp::Main::isInitialized())
+        mwmp::Main::get().getGUIController()->cleanUp();
+    /*
+        End of tes3mp addition
+    */
+
+    mEnvironment.cleanup();
+
+    /*
+        Start of tes3mp addition
+
+        Free up memory allocated by multiplayer's Main class
+    */
+    mwmp::Main::destroy();
+    /*
+        End of tes3mp addition
+    */
+
+    delete mScriptContext;
     mScriptContext = nullptr;
 
     mUnrefQueue = nullptr;
@@ -444,6 +572,17 @@ OMW::Engine::~Engine()
     }
 
     SDL_Quit();
+
+    /*
+        Start of tes3mp addition
+
+        Free up memory allocated by multiplayer's logger
+    */
+    LOG_QUIT();
+    /*
+        End of tes3mp addition
+    */
+}
 
     Log(Debug::Info) << "Quitting peacefully.";
 }
@@ -548,6 +687,15 @@ void OMW::Engine::createWindow()
         while (!mWindow)
         {
             mWindow = SDL_CreateWindow("OpenMW", posX, posY, width, height, flags);
+            /*
+                Start of tes3mp change (major)
+
+                Rename the window into TES3MP
+            */
+            mWindow = SDL_CreateWindow("TES3MP", pos_x, pos_y, width, height, flags);
+            /*
+                End of tes3mp change (major)
+            */
             if (!mWindow)
             {
                 // Try with a lower AA
@@ -706,6 +854,16 @@ void OMW::Engine::setWindowIcon()
 {
     std::ifstream windowIconStream;
     const auto windowIcon = mResDir / "openmw.png";
+    boost::filesystem::ifstream windowIconStream;
+    /*
+        Start of tes3mp change (major)
+
+        Use TES3MP's logo for the window icon
+    */
+    std::string windowIcon = (mResDir / "mygui" / "tes3mp_logo.png").string();
+    /*
+        End of tes3mp change (major)
+    */
     windowIconStream.open(windowIcon, std::ios_base::in | std::ios_base::binary);
     if (windowIconStream.fail())
         Log(Debug::Error) << "Error: Failed to open " << windowIcon;
@@ -946,6 +1104,17 @@ void OMW::Engine::go()
 {
     assert(!mContentFiles.empty());
 
+    /*
+        Start of tes3mp change (major)
+
+        Attempt multiplayer initialization and proceed no further if it fails
+    */
+    if (!mwmp::Main::init(mContentFiles, mFileCollections))
+        return;
+    /*
+        End of tes3mp change (major)
+    */
+
     Log(Debug::Info) << "OSG version: " << osgGetVersion();
     SDL_version sdlVersion;
     SDL_GetVersion(&sdlVersion);
@@ -994,6 +1163,26 @@ void OMW::Engine::go()
             Log(Debug::Warning) << "Failed to open file to write OSG stats \"" << path
                                 << "\": " << std::generic_category().message(errno);
     }
+
+    /*
+        Start of tes3mp addition
+
+        Handle post-initialization for multiplayer classes
+    */
+    mwmp::Main::postInit();
+    /*
+        End of tes3mp addition
+    */
+
+    /*
+        Start of tes3mp change (major)
+
+        Always skip the main menu in multiplayer
+    */
+    mSkipMenu = true;
+    /*
+        End of tes3mp change (major)
+    */
 
     // Setup profiler
     osg::ref_ptr<Resource::Profiler> statsHandler = new Resource::Profiler(stats.is_open(), *mVFS);
@@ -1062,6 +1251,28 @@ void OMW::Engine::go()
         {
             timeManager.setSimulationTime(timeManager.getSimulationTime() + dt);
             timeManager.setRenderingSimulationTime(timeManager.getRenderingSimulationTime() + dt);
+            mViewer->eventTraversal();
+            mViewer->updateTraversal();
+
+            mEnvironment.getWorld()->updateWindowManager();
+
+            mViewer->renderingTraversals();
+
+            bool guiActive = mEnvironment.getWindowManager()->isGuiMode();
+
+            /*
+                Start of tes3mp change (major)
+
+                Whether the GUI is active should have no relevance in multiplayer, so the guiActive
+                boolean is always set to false instead
+            */
+            guiActive = false;
+            /*
+                End of tes3mp change (major)
+            */
+
+            if (!guiActive)
+                simulationTime += dt;
         }
 
         if (stats)

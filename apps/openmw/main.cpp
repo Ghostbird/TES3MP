@@ -14,6 +14,16 @@
 
 #include <boost/program_options/variables_map.hpp>
 
+/*
+    Start of tes3mp addition
+
+    Include the header of the multiplayer's Main class
+*/
+#include "mwmp/Main.hpp"
+/*
+    End of tes3mp addition
+*/
+
 #if defined(_WIN32)
 #include <components/misc/windows.hpp>
 // makes __argc and __argv available on windows
@@ -28,6 +38,18 @@ extern "C" __declspec(dllexport) DWORD AmdPowerXpressRequestHighPerformance = 0x
 #include <unistd.h>
 #endif
 
+/*
+    Start of tes3mp addition
+
+    Include additional headers for multiplayer purposes
+*/
+#include <components/openmw-mp/ErrorMessages.hpp>
+#include <components/openmw-mp/TimedLog.hpp>
+#include <components/openmw-mp/Utils.hpp>
+#include <components/openmw-mp/Version.hpp>
+/*
+    End of tes3mp addition
+*/
 /**
  * \brief Parses application command line and calls \ref Cfg::ConfigurationManager
  * to parse configuration files.
@@ -66,11 +88,28 @@ bool parseOptions(int argc, char** argv, OMW::Engine& engine, Files::Configurati
     cfgMgr.readConfiguration(variables, desc);
 
     Debug::setupLogging(cfgMgr.getLogPath(), "OpenMW");
+
+    /*
+        Start of tes3mp addition
+
+        Print the multiplayer version before the regular one.
+    */
+    Log(Debug::Info) << Utils::getVersionInfo("TES3MP client", TES3MP_VERSION, Version::getCommitHash(), TES3MP_PROTO_VERSION);
+    /*
+        End of tes3mp addition
+    */
+
     Log(Debug::Info) << Version::getOpenmwVersionDescription();
 
     Settings::Manager::load(cfgMgr);
 
     MWGui::DebugWindow::startLogRecording();
+
+    /*
+        Start of tes3mp addition
+
+        Print the multiplayer version before the regular one.
+    */
 
     engine.setGrabMouse(!variables["no-grab"].as<bool>());
 
@@ -158,6 +197,16 @@ bool parseOptions(int argc, char** argv, OMW::Engine& engine, Files::Configurati
     engine.enableFontExport(variables["export-fonts"].as<bool>());
     engine.setRandomSeed(variables["random-seed"].as<unsigned int>());
 
+    /*
+        Start of tes3mp addition
+
+        Configure multiplayer using parsed variables
+    */
+    mwmp::Main::configure(&variables);
+    /*
+        End of tes3mp addition
+    */
+
     return true;
 }
 
@@ -240,7 +289,26 @@ extern "C" int SDL_main(int argc, char** argv)
 int main(int argc, char** argv)
 #endif
 {
-    return Debug::wrapApplication(&runApplication, argc, argv, "OpenMW");
+    /*
+        Start of tes3mp addition
+
+        Initialize the logger added for multiplayer
+    */
+    LOG_INIT(TimedLog::LOG_INFO);
+    /*
+        End of tes3mp addition
+    */
+
+    /*
+        Start of tes3mp change (major)
+
+        Instead of logging information in openmw.log, use a more descriptive filename
+        that includes a timestamp
+    */
+    return Debug::wrapApplication(&runApplication, argc, argv, "/tes3mp-client-" + TimedLog::getFilenameTimestamp());
+    /*
+        End of tes3mp change (major)
+    */
 }
 
 // Platform specific for Windows when there is no console built into the executable.
