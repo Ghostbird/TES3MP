@@ -3,6 +3,7 @@
 
 #include "categories/camera.hpp"
 #include "categories/cells.hpp"
+#include "categories/chat.hpp"
 #include "categories/fog.hpp"
 #include "categories/game.hpp"
 #include "categories/general.hpp"
@@ -40,6 +41,7 @@ namespace Settings
 
         CameraCategory mCamera{ mIndex };
         CellsCategory mCells{ mIndex };
+        ChatCategory mChat{ mIndex };
         TerrainCategory mTerrain{ mIndex };
         FogCategory mFog{ mIndex };
         MapCategory mMap{ mIndex };
@@ -137,6 +139,11 @@ namespace Settings
     inline GeneralCategory& general()
     {
         return values().mGeneral;
+    }
+
+    inline ChatCategory& chat()
+    {
+        return values().mChat;
     }
 
     inline ShadersCategory& shaders()

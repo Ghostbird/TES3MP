@@ -179,6 +179,17 @@ namespace ESM
         std::string getDescription() const;
         ///< Return a short string describing the cell (mostly used for debugging/logging purpose)
 
+        /*
+            Start of tes3mp addition
+
+            Compatibility alias: OpenMW renamed getShortDescription to getDescription,
+            but the TES3MP code still uses the previous name.
+        */
+        std::string getShortDescription() const;
+        /*
+            End of tes3mp addition
+        */
+
         /* Get the next reference in this cell, if any. Returns false when
            there are no more references in the cell.
 

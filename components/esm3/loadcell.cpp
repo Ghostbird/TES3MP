@@ -233,6 +233,19 @@ namespace ESM
         esm.restoreContext(mContextList.at(iCtx));
     }
 
+    /*
+        Start of tes3mp addition
+
+        Compatibility alias for the rename of getShortDescription to getDescription
+    */
+    std::string Cell::getShortDescription() const
+    {
+        return getDescription();
+    }
+    /*
+        End of tes3mp addition
+    */
+
     std::string Cell::getDescription() const
     {
         const auto& nameString = mName;
