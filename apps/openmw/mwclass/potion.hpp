@@ -54,7 +54,9 @@ namespace MWClass
         float getWeight(const MWWorld::ConstPtr& ptr) const override;
 
         bool canSell(const MWWorld::ConstPtr& item, int npcServices) const override;
-    };
+            void insertObjectPhysics(const MWWorld::Ptr& ptr, const std::string& model,
+            const osg::Quat& rotation, MWPhysics::PhysicsSystem& physics) const override;
+};
 }
 
 #endif

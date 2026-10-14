@@ -77,7 +77,6 @@ namespace MWMechanics
                 End of tes3mp addition
             */
 
-            void applyTools (int flags, float& value) const;
 
         const ESM::Potion* getRecord(const ESM::Potion& toFind) const;
         ///< Try to find a potion record similar to \a toFind in the record store, or return 0 if not found

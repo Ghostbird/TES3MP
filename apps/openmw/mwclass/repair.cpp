@@ -1,23 +1,15 @@
 #include "repair.hpp"
+#include "../mwphysics/physicssystem.hpp"
+#include <components/openmw-mp/Utils.hpp>
+#include "../mwmp/Main.hpp"
+#include "../mwmp/Networking.hpp"
+#include "../mwmp/Worldstate.hpp"
 
 #include <MyGUI_TextIterator.h>
 #include <MyGUI_UString.h>
 
 #include <components/esm3/loadnpc.hpp>
 #include <components/esm3/loadrepa.hpp>
-/*
-    Start of tes3mp addition
-
-    Include additional headers for multiplayer purposes
-*/
-#include <components/openmw-mp/Utils.hpp>
-#include "../mwmp/Main.hpp"
-#include "../mwmp/Networking.hpp"
-/*
-    End of tes3mp addition
-*/
-
-#include <components/esm/loadrepa.hpp>
 
 #include "../mwbase/environment.hpp"
 #include "../mwbase/windowmanager.hpp"
@@ -48,29 +40,36 @@ namespace MWClass
         {
             renderingInterface.getObjects().insertModel(ptr, model);
         }
-        // TODO: add option somewhere to enable collision for placeable objects
+    }
 
-        /*
-            Start of tes3mp addition
+    /*
+        Start of tes3mp addition
 
-            Make it possible to enable collision for this object class from a packet
-        */
+        Make it possible to enable collision for this object class from a packet.
+
+        Upstream split object insertion into rendering and physics, so this hook
+        lives in insertObjectPhysics where a PhysicsSystem is available.
+    */
+    void Repair::insertObjectPhysics(const MWWorld::Ptr& ptr, const std::string& model, const osg::Quat& rotation,
+        MWPhysics::PhysicsSystem& physics) const
+    {
         if (!model.empty())
         {
-            mwmp::BaseWorldstate *worldstate = mwmp::Main::get().getNetworking()->getWorldstate();
+            mwmp::BaseWorldstate* worldstate = mwmp::Main::get().getNetworking()->getWorldstate();
 
-            if (worldstate->hasPlacedObjectCollision || Utils::vectorContains(worldstate->enforcedCollisionRefIds, ptr.getCellRef().getRefId()))
+            if (worldstate->hasPlacedObjectCollision
+                || Utils::vectorContains(worldstate->enforcedCollisionRefIds, ptr.getCellRef().getRefId()))
             {
                 if (worldstate->useActorCollisionForPlacedObjects)
-                    physics.addObject(ptr, model, MWPhysics::CollisionType_Actor);
+                    physics.addObject(ptr, VFS::Path::toNormalized(model), rotation, MWPhysics::CollisionType_Actor);
                 else
-                    physics.addObject(ptr, model, MWPhysics::CollisionType_World);
+                    physics.addObject(ptr, VFS::Path::toNormalized(model), rotation, MWPhysics::CollisionType_World);
             }
         }
-        /*
-            End of tes3mp addition
-        */
     }
+    /*
+        End of tes3mp addition
+    */
 
     VFS::Path::NormalizedView Repair::getModel(const MWWorld::ConstPtr& ptr) const
     {

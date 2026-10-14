@@ -1,4 +1,5 @@
 #include "weapon.hpp"
+#include "../mwphysics/physicssystem.hpp"
 
 #include <MyGUI_TextIterator.h>
 #include <MyGUI_UString.h>
@@ -58,11 +59,19 @@ namespace MWClass
         }
         // TODO: add option somewhere to enable collision for placeable objects
 
-        /*
-            Start of tes3mp addition
+    }
 
-            Make it possible to enable collision for this object class from a packet
-        */
+    /*
+        Start of tes3mp addition
+
+        Make it possible to enable collision for this object class from a packet.
+
+        Upstream split object insertion into rendering and physics, so this hook
+        lives in insertObjectPhysics where a PhysicsSystem is available.
+    */
+    void Weapon::insertObjectPhysics(const MWWorld::Ptr& ptr, const std::string& model, const osg::Quat& rotation,
+        MWPhysics::PhysicsSystem& physics) const
+    {
         if (!model.empty())
         {
             mwmp::BaseWorldstate *worldstate = mwmp::Main::get().getNetworking()->getWorldstate();
@@ -71,15 +80,15 @@ namespace MWClass
                 Utils::vectorContains(worldstate->enforcedCollisionRefIds, ptr.getCellRef().getRefId()))
             {
                 if (worldstate->useActorCollisionForPlacedObjects)
-                    physics.addObject(ptr, model, MWPhysics::CollisionType_Actor);
+                    physics.addObject(ptr, VFS::Path::toNormalized(model), rotation, MWPhysics::CollisionType_Actor);
                 else
-                    physics.addObject(ptr, model, MWPhysics::CollisionType_World);
+                    physics.addObject(ptr, VFS::Path::toNormalized(model), rotation, MWPhysics::CollisionType_World);
             }
         }
-        /*
-            End of tes3mp addition
-        */
     }
+    /*
+        End of tes3mp addition
+    */
 
     VFS::Path::NormalizedView Weapon::getModel(const MWWorld::ConstPtr& ptr) const
     {

@@ -18,6 +18,8 @@ namespace MWClass
 
         void insertObjectRendering(const MWWorld::Ptr& ptr, const std::string& model,
             MWRender::RenderingInterface& renderingInterface) const override;
+        void insertObjectPhysics(const MWWorld::Ptr& ptr, const std::string& model,
+            const osg::Quat& rotation, MWPhysics::PhysicsSystem& physics) const override;
         ///< Add reference into a cell for rendering
 
         std::string_view getName(const MWWorld::ConstPtr& ptr) const override;

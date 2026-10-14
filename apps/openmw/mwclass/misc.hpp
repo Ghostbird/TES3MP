@@ -61,7 +61,9 @@ namespace MWClass
         bool isGold(const MWWorld::ConstPtr& ptr) const override;
 
         bool isSoulGem(const MWWorld::ConstPtr& ptr) const override;
-    };
+            void insertObjectPhysics(const MWWorld::Ptr& ptr, const std::string& model,
+            const osg::Quat& rotation, MWPhysics::PhysicsSystem& physics) const override;
+};
 }
 
 #endif

@@ -20,7 +20,7 @@
 */
 
 #include <components/esm3/loadcont.hpp>
-#include <components/esm/containerstate.hpp>
+#include <components/esm3/containerstate.hpp>
 #include <components/settings/settings.hpp>
 
 #include "../mwbase/environment.hpp"
