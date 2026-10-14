@@ -88,3 +88,5 @@ venv/
 
 # Local worktrees (not part of the repository)
 /.worktrees/
+/rebase-work/
+/.rebase-index-backup
