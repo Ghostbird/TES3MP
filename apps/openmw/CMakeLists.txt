@@ -117,6 +117,7 @@ add_openmw_dir (mwbase
     )
 
 # Start of tes3mp addition
+include_directories(${RakNet_INCLUDES})
 add_openmw_dir (mwmp)
 add_openmw_dir (mwmp/GUI)
 add_openmw_dir (mwmp/processors)

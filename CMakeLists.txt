@@ -595,6 +595,11 @@ include_directories(
 )
 include_directories(".")
 
+# Start of tes3mp addition
+find_package(RakNet REQUIRED)
+include_directories(${RakNet_INCLUDES})
+# End of tes3mp addition
+
 if(MYGUI_STATIC)
     add_compile_definitions(MYGUI_STATIC)
 endif (MYGUI_STATIC)

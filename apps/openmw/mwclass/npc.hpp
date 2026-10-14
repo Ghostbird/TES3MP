@@ -90,8 +90,6 @@ namespace MWClass
                 End of tes3mp addition
             */
 
-            void hit(const MWWorld::Ptr& ptr, float attackStrength, int type) const override;
-
         void onHit(const MWWorld::Ptr& ptr, const std::map<std::string, float>& damages, ESM::RefId object,
             const MWWorld::Ptr& attacker, bool successful,
             const MWMechanics::DamageSourceType sourceType) const override;

@@ -14,7 +14,7 @@
     End of tes3mp addition
 */
 
-#include <components/esm/loadalch.hpp>
+#include <components/esm3/loadalch.hpp>
 
 #include "../mwbase/environment.hpp"
 #include "../mwbase/windowmanager.hpp"

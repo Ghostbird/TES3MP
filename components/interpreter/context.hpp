@@ -29,6 +29,8 @@ namespace Interpreter
             End of tes3mp addition
         */
 
+        virtual ESM::RefId getTarget() const = 0;
+
         virtual int getLocalShort(int index) const = 0;
 
         virtual int getLocalLong(int index) const = 0;

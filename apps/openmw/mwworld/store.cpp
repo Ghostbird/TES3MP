@@ -756,43 +756,6 @@ namespace MWWorld
         }
     }
     ESM::Cell* Store<ESM::Cell>::insert(const ESM::Cell& cell)
-    /*
-        Start of tes3mp addition
-
-        Make it possible to override a Cell record similarly to how
-        other types of records can be overridden
-    */
-    ESM::Cell *Store<ESM::Cell>::override(const ESM::Cell &cell)
-    {
-        if (search(cell) != 0)
-        {
-            for (auto it = mSharedInt.begin(); it != mSharedInt.end(); ++it)
-            {
-                if (Misc::StringUtils::ciEqual((*it)->mName, cell.mName))
-                {
-                    (*it) = &const_cast<ESM::Cell&>(cell);
-                    break;
-                }
-            }
-
-            for (auto it = mInt.begin(); it != mInt.end(); ++it)
-            {
-                if (Misc::StringUtils::ciEqual((*it).second.mName, cell.mName))
-                {
-                    (*it).second = cell;
-                    return &(*it).second;
-                }
-            }
-        }
-        else
-        {
-            return insert(cell);
-        }
-    }
-    /*
-        End of tes3mp addition
-    */
-    ESM::Cell *Store<ESM::Cell>::insert(const ESM::Cell &cell)
     {
         if (search(cell) != nullptr)
         {
@@ -817,6 +780,25 @@ namespace MWWorld
             return result->second;
         }
     }
+
+    /*
+        Start of tes3mp addition
+
+        Make it possible to override a Cell record, similarly to how other
+        types of records can be overridden
+    */
+    const ESM::Cell* Store<ESM::Cell>::override(const ESM::Cell& cell)
+    {
+        if (const ESM::Cell* existing = search(cell.mId))
+        {
+            *const_cast<ESM::Cell*>(existing) = cell;
+            return existing;
+        }
+        return insert(cell);
+    }
+    /*
+        End of tes3mp addition
+    */
 
     // Pathgrid
     //=========================================================================
@@ -870,27 +852,21 @@ namespace MWWorld
         Make it possible to override a Pathgrid record similarly to how
         other types of records can be overridden
     */
-    ESM::Pathgrid* Store<ESM::Pathgrid>::override(const ESM::Pathgrid& pathgrid)
+    const ESM::Pathgrid* Store<ESM::Pathgrid>::override(const ESM::Pathgrid& pathgrid)
     {
-        bool interior = mCells->search(pathgrid.mCell) != nullptr;
+        // Mirror the key computation used by Store<ESM::Pathgrid>::load so that
+        // overriding a pathgrid replaces the record loaded from the content files.
+        bool interior = pathgrid.mData.mX == 0 && pathgrid.mData.mY == 0
+            && mCells->search(pathgrid.mCell.getRefIdString()) != nullptr;
 
-        // Try to overwrite existing record
-        if (interior)
-        {
-            std::pair<Interior::iterator, bool> ret = mInt.insert(std::make_pair(pathgrid.mCell, pathgrid));
-            if (!ret.second)
-                ret.first->second = pathgrid;
+        ESM::RefId cell
+            = interior ? pathgrid.mCell : ESM::RefId::esm3ExteriorCell(pathgrid.mData.mX, pathgrid.mData.mY);
 
-            return &ret.first->second;
-        }
-        else
-        {
-            std::pair<Exterior::iterator, bool> ret = mExt.insert(std::make_pair(std::make_pair(pathgrid.mData.mX, pathgrid.mData.mY), pathgrid));
-            if (!ret.second)
-                ret.first->second = pathgrid;
+        auto ret = mStatic.emplace(cell, pathgrid);
+        if (!ret.second)
+            ret.first->second = pathgrid;
 
-            return &ret.first->second;
-        }
+        return &ret.first->second;
     }
     /*
         End of tes3mp addition

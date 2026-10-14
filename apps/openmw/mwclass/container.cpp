@@ -19,7 +19,7 @@
     End of tes3mp addition
 */
 
-#include <components/esm/loadcont.hpp>
+#include <components/esm3/loadcont.hpp>
 #include <components/esm/containerstate.hpp>
 #include <components/settings/settings.hpp>
 

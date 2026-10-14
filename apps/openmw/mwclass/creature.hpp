@@ -90,9 +90,6 @@ namespace MWClass
                 End of tes3mp addition
             */
 
-            std::string getScript (const MWWorld::ConstPtr& ptr) const override;
-            ///< Return name of the script attached to ptr
-
         bool hasInventoryStore(const MWWorld::ConstPtr& ptr) const override;
 
         ESM::RefId getScript(const MWWorld::ConstPtr& ptr) const override;

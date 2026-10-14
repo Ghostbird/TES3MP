@@ -220,10 +220,6 @@ namespace MWWorld
                 End of tes3mp addition
             */
 
-            virtual void setRemainingUsageTime (const Ptr& ptr, float duration) const;
-            ///< Sets the remaining duration of the object, such as an equippable light
-            /// source. (default implementation: throw an exception)
-
         /// Return maximal movement speed for the current state.
         virtual float getMaxSpeed(const Ptr& ptr) const;
 

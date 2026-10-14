@@ -79,8 +79,6 @@ namespace MWScript
                 End of tes3mp addition
             */
 
-            int getLocalShort (int index) const override;
-
         int getLocalShort(int index) const override;
 
         int getLocalLong(int index) const override;

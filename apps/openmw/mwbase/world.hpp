@@ -12,17 +12,17 @@
 
 #include <components/misc/rng.hpp>
 #include <components/vfs/pathutil.hpp>
+
 /*
     Start of tes3mp addition
 
     Include additional headers for multiplayer purposes
 */
-#include <components/esm/variant.hpp>
+#include <components/esm3/variant.hpp>
 /*
     End of tes3mp addition
 */
 
-#include <osg/Timer>
 
 #include "../mwworld/doorstate.hpp"
 #include "../mwworld/globalvariablename.hpp"
@@ -119,105 +119,6 @@ namespace MWBase
     {
         World(const World&);
         ///< not implemented
-            World (const World&);
-            ///< not implemented
-
-            World& operator= (const World&);
-            ///< not implemented
-
-        public:
-
-            struct DoorMarker
-            {
-                std::string name;
-                float x, y; // world position
-                ESM::CellId dest;
-            };
-
-            World() {}
-
-            virtual ~World() {}
-
-            virtual void startNewGame (bool bypass) = 0;
-            ///< \param bypass Bypass regular game start.
-
-            virtual void clear() = 0;
-
-            virtual int countSavedGameRecords() const = 0;
-            virtual int countSavedGameCells() const = 0;
-
-            virtual void write (ESM::ESMWriter& writer, Loading::Listener& listener) const = 0;
-
-            virtual void readRecord (ESM::ESMReader& reader, uint32_t type,
-                const std::map<int, int>& contentFileMap) = 0;
-
-            virtual MWWorld::CellStore *getExterior (int x, int y) = 0;
-
-            virtual MWWorld::CellStore *getInterior (const std::string& name) = 0;
-
-            virtual MWWorld::CellStore *getCell (const ESM::CellId& id) = 0;
-
-            virtual void testExteriorCells() = 0;
-            virtual void testInteriorCells() = 0;
-
-            virtual void useDeathCamera() = 0;
-
-            virtual void setWaterHeight(const float height) = 0;
-
-            virtual bool toggleWater() = 0;
-            virtual bool toggleWorld() = 0;
-            virtual bool toggleBorders() = 0;
-
-            virtual void adjustSky() = 0;
-
-            virtual MWWorld::Player& getPlayer() = 0;
-            virtual MWWorld::Ptr getPlayerPtr() = 0;
-            virtual MWWorld::ConstPtr getPlayerConstPtr() const = 0;
-
-            virtual const MWWorld::ESMStore& getStore() const = 0;
-
-            /*
-                Start of tes3mp addition
-
-                Make it possible to get the World's ESMStore as a non-const
-            */
-            virtual MWWorld::ESMStore& getModifiableStore() = 0;
-            /*
-                End of tes3mp addition
-            */
-
-            virtual std::vector<ESM::ESMReader>& getEsmReader() = 0;
-
-            virtual MWWorld::LocalScripts& getLocalScripts() = 0;
-
-            virtual bool hasCellChanged() const = 0;
-            ///< Has the set of active cells changed, since the last frame?
-
-            virtual bool isCellExterior() const = 0;
-
-            virtual bool isCellQuasiExterior() const = 0;
-
-            virtual osg::Vec2f getNorthVector (const MWWorld::CellStore* cell) = 0;
-            ///< get north vector for given interior cell
-
-            virtual void getDoorMarkers (MWWorld::CellStore* cell, std::vector<DoorMarker>& out) = 0;
-            ///< get a list of teleport door markers for a given cell, to be displayed on the local map
-
-            /*
-                Start of tes3mp addition
-
-                Make it possible to check whether global variables exist and to create
-                new ones
-            */
-            virtual bool hasGlobal(const std::string& name) = 0;
-
-            virtual void createGlobal(const std::string& name, ESM::VarType varType) = 0;
-            /*
-                End of tes3mp addition
-            */
-
-            virtual void setGlobalInt (const std::string& name, int value) = 0;
-            ///< Set value independently from real type.
 
         World& operator=(const World&);
         ///< not implemented
@@ -250,29 +151,6 @@ namespace MWBase
         virtual void readRecord(ESM::ESMReader& reader, uint32_t type) = 0;
 
         virtual void useDeathCamera() = 0;
-            /*
-                Start of tes3mp addition
-
-                Make it possible to find a Ptr in any active cell based on its refNum and mpNum
-            */
-            virtual MWWorld::Ptr searchPtrViaUniqueIndex(int refNum, int mpNum) = 0;
-            /*
-                End of tes3mp addition
-            */
-
-            /*
-                Start of tes3mp addition
-
-                Make it possible to update all Ptrs in active cells that have a certain refId
-            */
-            virtual void updatePtrsWithRefId(std::string refId) = 0;
-            /*
-                End of tes3mp addition
-            */
-
-            virtual MWWorld::Ptr findContainer (const MWWorld::ConstPtr& ptr) = 0;
-            ///< Return a pointer to a liveCellRef which contains \a ptr.
-            /// \note Search is limited to the active cells.
 
         virtual void setWaterHeight(const float height) = 0;
 
@@ -287,6 +165,17 @@ namespace MWBase
         virtual MWWorld::ESMStore& getStore() = 0;
         virtual const MWWorld::ESMStore& getStore() const = 0;
 
+
+        /*
+            Start of tes3mp addition
+
+            Make it possible to get the World's ESMStore as a non-const
+        */
+        virtual MWWorld::ESMStore& getModifiableStore() = 0;
+        /*
+            End of tes3mp addition
+        */
+
         virtual const std::vector<int>& getESMVersions() const = 0;
 
         virtual MWWorld::LocalScripts& getLocalScripts() = 0;
@@ -296,55 +185,23 @@ namespace MWBase
         virtual bool isCellQuasiExterior() const = 0;
 
         virtual const std::set<MWWorld::CellStore*, std::less<>>& getActiveCells() const = 0;
-            /*
-                Start of tes3mp addition
-
-                Make it possible to set a specific weather state for a region from elsewhere
-                in the code
-            */
-            virtual void setRegionWeather(const std::string& region, const unsigned int currentWeather, const unsigned int nextWeather,
-                const unsigned int queuedWeather, const float transitionFactor, bool force) = 0;
-            /*
-                End of tes3mp addition
-            */
-
-            /*
-                Start of tes3mp addition
-
-                Make it possible to check whether the local WeatherManager has the
-                ability to create weather changes
-            */
-            virtual bool getWeatherCreationState() = 0;
-            /*
-                End of tes3mp addition
-            */
-
-            /*
-                Start of tes3mp addition
-
-                Make it possible to enable and disable the local WeatherManager's ability
-                to create weather changes
-            */
-            virtual void setWeatherCreationState(bool state) = 0;
-            /*
-                End of tes3mp addition
-            */
-
-            /*
-                Start of tes3mp addition
-
-                Make it possible to send the current weather in a WorldWeather packet
-                when requested from elsewhere in the code
-            */
-            virtual void sendWeather() = 0;
-            /*
-                End of tes3mp addition
-            */
-
-            virtual int getCurrentWeather() const = 0;
 
         virtual void getDoorMarkers(MWWorld::CellStore& cell, std::vector<DoorMarker>& out) = 0;
         ///< get a list of teleport door markers for a given cell, to be displayed on the local map
+
+
+        /*
+            Start of tes3mp addition
+
+            Make it possible to check whether global variables exist and to create
+            new ones
+        */
+        virtual bool hasGlobal(const std::string& name) = 0;
+
+        virtual void createGlobal(const std::string& name, ESM::VarType varType) = 0;
+        /*
+            End of tes3mp addition
+        */
 
         virtual void setGlobalInt(MWWorld::GlobalVariableName name, int value) = 0;
         ///< Set value independently from real type.
@@ -379,6 +236,40 @@ namespace MWBase
         ///< Return a pointer to a liveCellRef with the given name.
         /// \param activeOnly do non search inactive cells.
 
+
+        /*
+            Start of tes3mp addition
+
+            Make it possible to find a Ptr in any active cell based on its refNum and mpNum
+        */
+        virtual MWWorld::Ptr searchPtrViaUniqueIndex(int refNum, int mpNum) = 0;
+        /*
+            End of tes3mp addition
+        */
+
+        /*
+            Start of tes3mp addition
+
+            Make it possible to update all Ptrs in active cells that have a certain refId
+        */
+        virtual void updatePtrsWithRefId(std::string refId) = 0;
+        /*
+            End of tes3mp addition
+        */
+
+        /*
+            Start of tes3mp addition
+
+            These have been declared here so they can be accessed from places
+            other than MWWorld::World
+        */
+        virtual void updateWeather(float duration, bool paused = false) = 0;
+
+        virtual void PCDropped(const MWWorld::Ptr& item) = 0;
+        /*
+            End of tes3mp addition
+        */
+
         virtual MWWorld::Ptr findContainer(const MWWorld::ConstPtr& ptr) = 0;
         ///< Return a pointer to a liveCellRef which contains \a ptr.
         /// \note Search is limited to the active cells.
@@ -386,29 +277,6 @@ namespace MWBase
         virtual void enable(const MWWorld::Ptr& ptr) = 0;
 
         virtual void disable(const MWWorld::Ptr& ptr) = 0;
-            /*
-                Start of tes3mp addition
-
-                This has been declared here so it can be accessed from places
-                other than MWWorld::World
-            */
-            virtual void updateWeather(float duration, bool paused = false) = 0;
-            /*
-                End of tes3mp addition
-            */
-
-            /*
-                Start of tes3mp addition
-
-                This has been declared here so it can be accessed from places
-                other than MWWorld::World 
-            */
-            virtual void PCDropped(const MWWorld::Ptr& item) = 0;
-            /*
-                End of tes3mp addition
-            */
-
-            virtual float getDistanceToFacedObject() = 0;
 
         virtual void advanceTime(double hours, bool incremental = false) = 0;
         ///< Advance in-game time.
@@ -420,6 +288,53 @@ namespace MWBase
         ///< \return Resulting mode
 
         virtual void changeWeather(ESM::RefId region, ESM::RefId id) = 0;
+
+
+        /*
+            Start of tes3mp addition
+
+            Make it possible to set a specific weather state for a region from elsewhere
+            in the code
+        */
+        virtual void setRegionWeather(const std::string& region, const unsigned int currentWeather,
+            const unsigned int nextWeather, const unsigned int queuedWeather, const float transitionFactor, bool force)
+            = 0;
+        /*
+            End of tes3mp addition
+        */
+
+        /*
+            Start of tes3mp addition
+
+            Make it possible to check whether the local WeatherManager has the
+            ability to create weather changes
+        */
+        virtual bool getWeatherCreationState() = 0;
+        /*
+            End of tes3mp addition
+        */
+
+        /*
+            Start of tes3mp addition
+
+            Make it possible to enable and disable the local WeatherManager's ability
+            to create weather changes
+        */
+        virtual void setWeatherCreationState(bool state) = 0;
+        /*
+            End of tes3mp addition
+        */
+
+        /*
+            Start of tes3mp addition
+
+            Make it possible to send the current weather in a WorldWeather packet
+            when requested from elsewhere in the code
+        */
+        virtual void sendWeather() = 0;
+        /*
+            End of tes3mp addition
+        */
 
         virtual const MWWorld::WeatherStore& getAllWeather() const = 0;
 
@@ -445,38 +360,6 @@ namespace MWBase
 
         virtual void modRegion(ESM::RefId regionid, const std::map<ESM::RefId, uint8_t>& chances) = 0;
         virtual const std::map<ESM::RefId, uint8_t>& getRegionWeatherChances(ESM::RefId regionid) const = 0;
-            /*
-                Start of tes3mp addition
-
-                Make it possible to set the inertial force of a Ptr directly
-            */
-            virtual void setInertialForce(const MWWorld::Ptr& ptr, const osg::Vec3f &force) = 0;
-            /*
-                End of tes3mp addition
-            */
-
-            /*
-                Start of tes3mp addition
-
-                Make it possible to set whether a Ptr is on the ground or not, needed for proper
-                synchronization in multiplayer
-            */
-            virtual void setOnGround(const MWWorld::Ptr& ptr, bool onGround) = 0;
-            /*
-                End of tes3mp addition
-            */
-
-            /*
-                Start of tes3mp addition
-
-                Make it possible to set the physics framerate from elsewhere
-            */
-            virtual void setPhysicsFramerate(float physFramerate) = 0;
-            /*
-                End of tes3mp addition
-            */
-
-            virtual void updateAnimatedCollisionShape(const MWWorld::Ptr &ptr) = 0;
 
         virtual void changeToInteriorCell(
             std::string_view cellName, const ESM::Position& position, bool adjustPlayerPos, bool changeEvent = true)
@@ -548,6 +431,38 @@ namespace MWBase
 
         virtual void updateAnimatedCollisionShape(const MWWorld::Ptr& ptr) = 0;
 
+
+        /*
+            Start of tes3mp addition
+
+            Make it possible to set the inertial force of a Ptr directly
+        */
+        virtual void setInertialForce(const MWWorld::Ptr& ptr, const osg::Vec3f& force) = 0;
+        /*
+            End of tes3mp addition
+        */
+
+        /*
+            Start of tes3mp addition
+
+            Make it possible to set whether a Ptr is on the ground or not, needed for proper
+            synchronization in multiplayer
+        */
+        virtual void setOnGround(const MWWorld::Ptr& ptr, bool onGround) = 0;
+        /*
+            End of tes3mp addition
+        */
+
+        /*
+            Start of tes3mp addition
+
+            Make it possible to set the physics framerate from elsewhere
+        */
+        virtual void setPhysicsFramerate(float physFramerate) = 0;
+        /*
+            End of tes3mp addition
+        */
+
         virtual const MWPhysics::RayCastingInterface* getRayCasting() const = 0;
 
         virtual bool castRenderingRay(MWPhysics::RayCastingResult& res, const osg::Vec3f& from, const osg::Vec3f& to,
@@ -556,98 +471,6 @@ namespace MWBase
 
         virtual void setActorCollisionMode(const MWWorld::Ptr& ptr, bool internal, bool external) = 0;
         virtual bool isActorCollisionEnabled(const MWWorld::Ptr& ptr) = 0;
-            /*
-                Start of tes3mp addition
-
-                Useful self-contained method for saving door states
-            */
-            virtual void saveDoorState(const MWWorld::Ptr& door, MWWorld::DoorState state) = 0;
-            /*
-                End of tes3mp addition
-            */
-
-            /*
-                Start of tes3mp addition
-
-                Make it possible to check whether a cell is active
-            */
-            virtual bool isCellActive(const ESM::Cell& cell) = 0;
-            /*
-                End of tes3mp addition
-            */
-
-            /*
-                Start of tes3mp addition
-
-                Make it possible to unload a cell from elsewhere
-            */
-            virtual void unloadCell(const ESM::Cell& cell) = 0;
-            /*
-                End of tes3mp addition
-            */
-
-            /*
-                Start of tes3mp addition
-
-                Make it possible to unload all active cells from elsewhere
-            */
-            virtual void unloadActiveCells() = 0;
-            /*
-                End of tes3mp addition
-            */
-
-            /*
-                Start of tes3mp addition
-
-                Clear the CellStore for a specific Cell from elsewhere
-            */
-            virtual void clearCellStore(const ESM::Cell& cell) = 0;
-            /*
-                End of tes3mp addition
-            */
-
-            virtual void getActorsStandingOn (const MWWorld::ConstPtr& object, std::vector<MWWorld::Ptr> &actors) = 0; ///< get a list of actors standing on \a object
-            virtual bool getPlayerStandingOn (const MWWorld::ConstPtr& object) = 0; ///< @return true if the player is standing on \a object
-            virtual bool getActorStandingOn (const MWWorld::ConstPtr& object) = 0; ///< @return true if any actor is standing on \a object
-            virtual bool getPlayerCollidingWith(const MWWorld::ConstPtr& object) = 0; ///< @return true if the player is colliding with \a object
-            virtual bool getActorCollidingWith (const MWWorld::ConstPtr& object) = 0; ///< @return true if any actor is colliding with \a object
-            virtual void hurtStandingActors (const MWWorld::ConstPtr& object, float dmgPerSecond) = 0;
-            ///< Apply a health difference to any actors standing on \a object.
-            /// To hurt actors, healthPerSecond should be a positive value. For a negative value, actors will be healed.
-            virtual void hurtCollidingActors (const MWWorld::ConstPtr& object, float dmgPerSecond) = 0;
-            ///< Apply a health difference to any actors colliding with \a object.
-            /// To hurt actors, healthPerSecond should be a positive value. For a negative value, actors will be healed.
-
-            virtual float getWindSpeed() = 0;
-
-            virtual void getContainersOwnedBy (const MWWorld::ConstPtr& npc, std::vector<MWWorld::Ptr>& out) = 0;
-            ///< get all containers in active cells owned by this Npc
-            virtual void getItemsOwnedBy (const MWWorld::ConstPtr& npc, std::vector<MWWorld::Ptr>& out) = 0;
-            ///< get all items in active cells owned by this Npc
-
-            virtual bool getLOS(const MWWorld::ConstPtr& actor,const MWWorld::ConstPtr& targetActor) = 0;
-            ///< get Line of Sight (morrowind stupid implementation)
-
-            virtual float getDistToNearestRayHit(const osg::Vec3f& from, const osg::Vec3f& dir, float maxDist, bool includeWater = false) = 0;
-
-            virtual void enableActorCollision(const MWWorld::Ptr& actor, bool enable) = 0;
-
-            enum RestPermitted
-            {
-                Rest_Allowed = 0,
-                Rest_OnlyWaiting = 1,
-                Rest_PlayerIsInAir = 2,
-                Rest_PlayerIsUnderwater = 3,
-                Rest_EnemiesAreNearby = 4
-            };
-
-            /// check if the player is allowed to rest
-            virtual RestPermitted canRest() const = 0;
-
-            /// \todo Probably shouldn't be here
-            virtual MWRender::Animation* getAnimation(const MWWorld::Ptr &ptr) = 0;
-            virtual const MWRender::Animation* getAnimation(const MWWorld::ConstPtr &ptr) const = 0;
-            virtual void reattachPlayerCamera() = 0;
 
         virtual bool toggleCollisionMode() = 0;
         ///< Toggle collision mode for player. If disabled player object should ignore
@@ -713,6 +536,57 @@ namespace MWBase
         /// @param state see MWClass::setDoorState
         /// @note throws an exception when invoked on a teleport door
         virtual void activateDoor(const MWWorld::Ptr& door, MWWorld::DoorState state) = 0;
+
+
+        /*
+            Start of tes3mp addition
+
+            Useful self-contained method for saving door states
+        */
+        virtual void saveDoorState(const MWWorld::Ptr& door, MWWorld::DoorState state) = 0;
+        /*
+            End of tes3mp addition
+        */
+
+        /*
+            Start of tes3mp addition
+
+            Make it possible to check whether a cell is active
+        */
+        virtual bool isCellActive(const ESM::Cell& cell) = 0;
+        /*
+            End of tes3mp addition
+        */
+
+        /*
+            Start of tes3mp addition
+
+            Make it possible to unload a cell from elsewhere
+        */
+        virtual void unloadCell(const ESM::Cell& cell) = 0;
+        /*
+            End of tes3mp addition
+        */
+
+        /*
+            Start of tes3mp addition
+
+            Make it possible to unload all active cells from elsewhere
+        */
+        virtual void unloadActiveCells() = 0;
+        /*
+            End of tes3mp addition
+        */
+
+        /*
+            Start of tes3mp addition
+
+            Clear the CellStore for a specific Cell from elsewhere
+        */
+        virtual void clearCellStore(const ESM::Cell& cell) = 0;
+        /*
+            End of tes3mp addition
+        */
 
         virtual void getActorsStandingOn(const MWWorld::ConstPtr& object, std::vector<MWWorld::Ptr>& actors)
             = 0; ///< get a list of actors standing on \a object

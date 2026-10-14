@@ -18,7 +18,7 @@
     End of tes3mp addition
 */
 
-#include <components/esm/loadclot.hpp>
+#include <components/esm3/loadclot.hpp>
 
 #include "../mwbase/environment.hpp"
 #include "../mwbase/windowmanager.hpp"

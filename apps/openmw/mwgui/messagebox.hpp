@@ -25,30 +25,22 @@ namespace MWGui
         void onFrame(float frameDuration);
         void createMessageBox(std::string_view message, bool stat = false);
         void removeStaticMessageBox();
+        /*
+            Start of tes3mp change (major)
+
+            Add a hasServerOrigin boolean to the list of arguments so those messageboxes
+            can be differentiated from client-only ones
+        */
         bool createInteractiveMessageBox(std::string_view message, const std::vector<std::string>& buttons,
-            bool immediate = false, int defaultFocus = -1);
+            bool immediate = false, int defaultFocus = -1, bool hasServerOrigin = false);
+        /*
+            End of tes3mp change (major)
+        */
         bool isInteractiveMessageBox();
 
         std::size_t getMessagesCount();
 
         const InteractiveMessageBox* getInteractiveMessageBox() const { return mInterMessageBoxe.get(); }
-        public:
-            MessageBoxManager (float timePerChar);
-            ~MessageBoxManager ();
-            void onFrame (float frameDuration);
-            void createMessageBox (const std::string& message, bool stat = false);
-            void removeStaticMessageBox ();
-            /*
-                Start of tes3mp change (major)
-
-                Add a hasServerOrigin boolean to the list of arguments so those messageboxes
-                can be differentiated from client-only ones
-            */
-            bool createInteractiveMessageBox (const std::string& message, const std::vector<std::string>& buttons, bool hasServerOrigin = false);
-            /*
-                End of tes3mp change (major)
-            */
-            bool isInteractiveMessageBox ();
 
         /// Remove all message boxes
         void clear();
@@ -109,6 +101,7 @@ namespace MWGui
     class InteractiveMessageBox : public WindowModal
     {
     public:
+        friend class MessageBoxManager;
         InteractiveMessageBox(MessageBoxManager& parMessageBoxManager, const std::string& message,
             const std::vector<std::string>& buttons, bool immediate, size_t defaultFocus);
         void mousePressed(MyGUI::Widget* widget);
@@ -133,9 +126,6 @@ namespace MWGui
             /*
                 End of tes3mp addition
             */
-
-        private:
-            void buttonActivated (MyGUI::Widget* _widget);
 
         MessageBoxManager& mMessageBoxManager;
         MyGUI::EditBox* mMessageWidget;

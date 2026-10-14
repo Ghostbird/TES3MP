@@ -14,7 +14,7 @@
     End of tes3mp addition
 */
 
-#include <components/esm/loadappa.hpp>
+#include <components/esm3/loadappa.hpp>
 
 #include "../mwbase/environment.hpp"
 #include "../mwbase/windowmanager.hpp"

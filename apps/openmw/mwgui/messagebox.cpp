@@ -152,17 +152,8 @@ namespace MWGui
     }
 
     bool MessageBoxManager::createInteractiveMessageBox(
-        std::string_view message, const std::vector<std::string>& buttons, bool immediate, int defaultFocus)
-    /*
-        Start of tes3mp change (major)
-
-        Add a hasServerOrigin boolean to the list of arguments so those messageboxes
-        can be differentiated from client-only ones
-    */
-    bool MessageBoxManager::createInteractiveMessageBox (const std::string& message, const std::vector<std::string>& buttons, bool hasServerOrigin)
-    /*
-        End of tes3mp change (major)
-    */
+        std::string_view message, const std::vector<std::string>& buttons, bool immediate, int defaultFocus,
+        bool hasServerOrigin)
     {
         if (mInterMessageBoxe != nullptr)
         {
@@ -172,7 +163,6 @@ namespace MWGui
 
         mInterMessageBoxe
             = std::make_unique<InteractiveMessageBox>(*this, std::string{ message }, buttons, immediate, defaultFocus);
-        mInterMessageBoxe = new InteractiveMessageBox(*this, message, buttons);
         /*
             Start of tes3mp addition
 

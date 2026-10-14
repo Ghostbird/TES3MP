@@ -18,7 +18,7 @@
     End of tes3mp addition
 */
 
-#include <components/esm/loaddoor.hpp>
+#include <components/esm3/loaddoor.hpp>
 #include <components/esm/doorstate.hpp>
 #include <components/sceneutil/positionattitudetransform.hpp>
 

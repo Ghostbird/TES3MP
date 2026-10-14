@@ -68,11 +68,6 @@ namespace MWMechanics
                 End of tes3mp addition
             */
 
-            void purgeCommonDisease();
-            void purgeBlightDisease();
-            void purgeCorprusDisease();
-            void purgeCurses();
-
         static bool hasCorprusEffect(const ESM::Spell* spell);
 
         bool canUsePower(const ESM::Spell* spell) const;
