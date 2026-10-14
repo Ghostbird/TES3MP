@@ -85,3 +85,6 @@ moc_*.cxx
 *.[ao]
 *.so
 venv/
+
+# Local worktrees (not part of the repository)
+/.worktrees/
