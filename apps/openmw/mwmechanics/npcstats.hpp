@@ -10,6 +10,18 @@
 #include <string>
 #include <vector>
 
+/*
+    Start of tes3mp addition
+
+    Include additional headers for multiplayer purposes
+*/
+#include <time.h>
+/*
+    End of tes3mp addition
+*/
+
+#include "creaturestats.hpp"
+
 namespace ESM
 {
     struct Class;
@@ -28,6 +40,28 @@ namespace MWMechanics
 
         int mReputation;
         int mCrimeId;
+            /*
+                Start of tes3mp addition
+
+                Add a variable used to track the time of the most recent crime by a player
+            */
+            time_t mCrimeTime = time(0);
+            /*
+                End of tes3mp addition
+            */
+
+            // ----- used by the player only, maybe should be moved at some point -------
+            int mBounty;
+            int mWerewolfKills;
+            /// Used only for the player and for NPC's with ranks, modified by scripts; other NPCs have maximum one faction defined in their NPC record
+            std::map<std::string, int> mFactionRank;
+            std::set<std::string> mExpelled;
+            std::map<std::string, int> mFactionReputation;
+            int mLevelProgress; // 0-10
+            std::vector<int> mSkillIncreases; // number of skill increases for each attribute (resets after leveling up)
+            std::vector<int> mSpecIncreases; // number of skill increases for each specialization (accumulates throughout the entire game)
+            std::set<std::string> mUsedIds;
+            // ---------------------------------------------------------------------------
 
         // ----- used by the player only, maybe should be moved at some point -------
         int mBounty;
@@ -96,6 +130,31 @@ namespace MWMechanics
 
         int getSkillIncreasesForSpecialization(ESM::Class::Specialization spec) const;
         void setSkillIncreasesForSpecialization(ESM::Class::Specialization spec, int increases);
+            /*
+                Start of tes3mp addition
+
+                Useful methods for setting player stats
+            */
+            void setLevelProgress(int value);
+            int getSkillIncrease(int attribute) const;
+            void setSkillIncrease(int attribute, int value);
+            /*
+                End of tes3mp addition
+            */
+
+            /*
+                Start of tes3mp addition
+
+                Make it possible to get and set the time of the last crime witnessed by the NPC,
+                used to stop combat with a player after that player dies and is resurrected
+            */
+            time_t getCrimeTime();
+            void setCrimeTime(time_t crimeTime);
+            /*
+                End of tes3mp addition
+            */
+
+            int getLevelupAttributeMultiplier(int attribute) const;
 
         void levelUp();
 

@@ -35,6 +35,20 @@ namespace MWGui
         MyGUI::Button* mRegExSearchToggleButton;
 
         typedef std::list<std::string> StringList;
+            /*
+                Start of tes3mp addition
+
+                Allow the direct setting of a console's Ptr, without the assumption that an object
+                was clicked and that key focus should be restored to the console window, for console
+                commands executed via server scripts
+            */
+            void setPtr(const MWWorld::Ptr& object);
+            /*
+                End of tes3mp addition
+            */
+
+            MyGUI::EditBox* mCommandLine;
+            MyGUI::EditBox* mHistory;
 
         // History of previous entered commands
         StringList mCommandHistory;

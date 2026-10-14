@@ -5,6 +5,21 @@
 #include <components/misc/rng.hpp>
 #include <components/settings/values.hpp>
 
+/*
+    Start of tes3mp addition
+
+    Include additional headers for multiplayer purposes
+*/
+#include <components/openmw-mp/TimedLog.hpp>
+#include "../mwmp/Main.hpp"
+#include "../mwmp/Networking.hpp"
+#include "../mwmp/LocalPlayer.hpp"
+#include "../mwmp/Worldstate.hpp"
+/*
+    End of tes3mp addition
+*/
+
+#include "../mwworld/manualref.hpp"
 #include "../mwworld/class.hpp"
 #include "../mwworld/containerstore.hpp"
 #include "../mwworld/esmstore.hpp"
@@ -108,9 +123,35 @@ namespace MWMechanics
         if (!mSelfEnchanting)
             payForEnchantment(count);
 
+        /*
+            Start of tes3mp change (major)
+
+            Send the enchantment's record to the server
+
+            Don't add the new item to the player's inventory and instead expect the server to
+            add it
+
+            Store the quantity used for the enchantment so it can be retrieved in applyEnchantment()
+            when applicable
+            
+            The applyEnchantment() method is where the record of the newly enchanted item will be sent
+            to the server, causing the server to send back the player's inventory with the new item
+            included
+        */
+        mwmp::Main::get().getNetworking()->getWorldstate()->sendEnchantmentRecord(enchantmentPtr);
+
+        store.remove(mOldItemPtr, count, player);
+
         // Add the new item to player inventory and remove the old one
         store.remove(mOldItemPtr, count);
         store.add(newItemId, count);
+
+        mwmp::Main::get().getLocalPlayer()->storeLastEnchantmentQuantity(count);
+
+        std::string newItemId = mOldItemPtr.getClass().applyEnchantment(mOldItemPtr, enchantmentPtr->mId, getGemCharge(), mNewItemName);
+        /*
+            End of tes3mp change (major)
+        */
 
         return true;
     }

@@ -3,6 +3,20 @@
 #include <components/misc/rng.hpp>
 #include <components/misc/strings/format.hpp>
 
+/*
+    Start of tes3mp addition
+
+    Include additional headers for multiplayer purposes
+*/
+#include "../mwmp/Main.hpp"
+#include "../mwmp/Networking.hpp"
+#include "../mwmp/LocalPlayer.hpp"
+#include "../mwmp/MechanicsHelper.hpp"
+/*
+    End of tes3mp addition
+*/
+
+#include "../mwbase/world.hpp"
 #include "../mwbase/environment.hpp"
 #include "../mwbase/windowmanager.hpp"
 #include "../mwbase/world.hpp"
@@ -60,6 +74,30 @@ namespace MWMechanics
             int charge = itemToRepair.getClass().getItemHealth(itemToRepair);
             charge = std::min(charge + y, itemToRepair.getClass().getItemMaxHealth(itemToRepair));
             itemToRepair.getCellRef().setCharge(charge);
+        // repair by 'y' points
+        int charge = itemToRepair.getClass().getItemHealth(itemToRepair);
+        charge = std::min(charge + y, itemToRepair.getClass().getItemMaxHealth(itemToRepair));
+
+        /*
+            Start of tes3mp change (minor)
+
+            Send PlayerInventory packets that replace the original item with the new one
+        */
+        mwmp::LocalPlayer *localPlayer = mwmp::Main::get().getLocalPlayer();
+        mwmp::Item removedItem = MechanicsHelper::getItem(itemToRepair, 1);
+
+        itemToRepair.getCellRef().setCharge(charge);
+
+        mwmp::Item addedItem = MechanicsHelper::getItem(itemToRepair, 1);
+
+        localPlayer->sendItemChange(addedItem, mwmp::InventoryChanges::ADD);
+        localPlayer->sendItemChange(removedItem, mwmp::InventoryChanges::REMOVE);
+        /*
+            End of tes3mp change (minor)
+        */
+
+        // attempt to re-stack item, in case it was fully repaired
+        MWWorld::ContainerStoreIterator stacked = player.getClass().getContainerStore(player).restack(itemToRepair);
 
             // attempt to re-stack item, in case it was fully repaired
             MWWorld::ContainerStoreIterator stacked = player.getClass().getContainerStore(player).restack(itemToRepair);
@@ -71,6 +109,42 @@ namespace MWMechanics
 
             // increase skill
             player.getClass().skillUsageSucceeded(player, ESM::Skill::Armorer, ESM::Skill::Armorer_Repair);
+        MWBase::Environment::get().getWindowManager()->playSound("Repair");
+        MWBase::Environment::get().getWindowManager()->messageBox("#{sRepairSuccess}");
+
+        /*
+            Start of tes3mp addition
+
+            Send an ID_OBJECT_SOUND packet every time the player makes a sound here
+        */
+        mwmp::ObjectList *objectList = mwmp::Main::get().getNetworking()->getObjectList();
+        objectList->reset();
+        objectList->packetOrigin = mwmp::CLIENT_GAMEPLAY;
+        objectList->addObjectSound(MWMechanics::getPlayer(), "Repair", 1.0, 1.0);
+        objectList->sendObjectSound();
+        /*
+            End of tes3mp addition
+        */
+    }
+    else
+    {
+        MWBase::Environment::get().getWindowManager()->playSound("Repair Fail");
+        MWBase::Environment::get().getWindowManager()->messageBox("#{sRepairFailed}");
+
+        /*
+            Start of tes3mp addition
+
+            Send an ID_OBJECT_SOUND packet every time the player makes a sound here
+        */
+        mwmp::ObjectList *objectList = mwmp::Main::get().getNetworking()->getObjectList();
+        objectList->reset();
+        objectList->packetOrigin = mwmp::CLIENT_GAMEPLAY;
+        objectList->addObjectSound(MWMechanics::getPlayer(), "Repair Fail", 1.0, 1.0);
+        objectList->sendObjectSound();
+        /*
+            End of tes3mp addition
+        */
+    }
 
             MWBase::Environment::get().getWindowManager()->playSound(ESM::RefId::stringRefId("Repair"));
             MWBase::Environment::get().getWindowManager()->messageBox("#{sRepairSuccess}");

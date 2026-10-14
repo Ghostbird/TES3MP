@@ -58,6 +58,20 @@ namespace MWMechanics
         Spells(Spells&& spells);
 
         ~Spells();
+            /*
+                Start of tes3mp addition
+
+                Make it possible to set timestamps for power cooldowns, necessary for ID_PLAYER_COOLDOWNS packets
+            */
+            void setPowerUseTimestamp(const ESM::Spell* spell, int startDay, float startHour);
+            /*
+                End of tes3mp addition
+            */
+
+            void purgeCommonDisease();
+            void purgeBlightDisease();
+            void purgeCorprusDisease();
+            void purgeCurses();
 
         static bool hasCorprusEffect(const ESM::Spell* spell);
 

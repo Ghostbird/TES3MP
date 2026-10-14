@@ -7,6 +7,18 @@
 
 #include <components/debug/debuglog.hpp>
 
+/*
+    Start of tes3mp addition
+
+    Include additional headers for multiplayer purposes
+*/
+#include "../mwmp/Main.hpp"
+#include "../mwmp/GUIController.hpp"
+/*
+    End of tes3mp addition
+*/
+
+#include "../mwbase/windowmanager.hpp"
 #include "../mwbase/environment.hpp"
 #include "../mwbase/windowmanager.hpp"
 
@@ -85,6 +97,27 @@ namespace MWGui
     }
 
     void KeyboardNavigation::_unlinkWidget(MyGUI::Widget* widget)
+bool isRootParent(MyGUI::Widget* widget, MyGUI::Widget* root)
+{
+    while (widget && widget->getParent())
+        widget = widget->getParent();
+    return widget == root;
+}
+
+void KeyboardNavigation::onFrame()
+{
+    if (!mEnabled)
+        return;
+
+    /*
+        Start of tes3mp change (major)
+
+        Don't clear key focus widget when not in menus if the chat is currently focused
+    */
+    if (!MWBase::Environment::get().getWindowManager()->isGuiMode() && !mwmp::Main::get().getGUIController()->getChatEditState())
+    /*
+        End of tes3mp change (major)
+    */
     {
         for (std::pair<const int, MyGUI::Widget*>& w : mKeyFocus)
             if (w.second == widget)

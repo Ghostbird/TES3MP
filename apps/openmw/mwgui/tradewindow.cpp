@@ -11,6 +11,18 @@
 #include <components/widgets/numericeditbox.hpp>
 
 #include "../mwbase/dialoguemanager.hpp"
+/*
+    Start of tes3mp addition
+
+    Include additional headers for multiplayer purposes
+*/
+#include "../mwmp/Main.hpp"
+#include "../mwmp/Networking.hpp"
+#include "../mwmp/ObjectList.hpp"
+/*
+    End of tes3mp addition
+*/
+
 #include "../mwbase/environment.hpp"
 #include "../mwbase/inputmanager.hpp"
 #include "../mwbase/mechanicsmanager.hpp"
@@ -472,6 +484,25 @@ namespace MWGui
             addOrRemoveGold(mCurrentBalance, player);
             mPtr.getClass().getCreatureStats(mPtr).setGoldPool(
                 mPtr.getClass().getCreatureStats(mPtr).getGoldPool() - mCurrentBalance);
+
+            /*
+                Start of tes3mp change (major)
+
+                Don't unilaterally change the merchant's gold pool on our client and instead let the server do it
+            */
+            //mPtr.getClass().getCreatureStats(mPtr).setGoldPool(
+            //    mPtr.getClass().getCreatureStats(mPtr).getGoldPool() - mCurrentBalance);
+
+            mwmp::ObjectList *objectList = mwmp::Main::get().getNetworking()->getObjectList();
+            objectList->reset();
+            objectList->packetOrigin = mwmp::CLIENT_GAMEPLAY;
+            MWMechanics::CreatureStats& merchantCreatureStats = mPtr.getClass().getCreatureStats(mPtr);
+            objectList->addObjectMiscellaneous(mPtr, merchantCreatureStats.getGoldPool() - mCurrentBalance, merchantCreatureStats.getLastRestockTime().getHour(),
+                merchantCreatureStats.getLastRestockTime().getDay());
+            objectList->sendObjectMiscellaneous();
+            /*
+                End of tes3mp change (major)
+            */
         }
 
         eventTradeDone();

@@ -47,6 +47,40 @@ namespace MWGui
         void clear() override;
 
         std::string_view getWindowIdForLua() const override { return "QuickKeys"; }
+        /*
+            Start of tes3mp addition
+
+            Allow the setting of the selected index from elsewhere in the code
+        */
+        void setSelectedIndex(int index);
+        /*
+            End of tes3mp addition
+        */
+
+        /// @note This enum is serialized, so don't move the items around!
+        enum QuickKeyType
+        {
+            Type_Item,
+            Type_Magic,
+            Type_MagicItem,
+            Type_Unassigned,
+            Type_HandToHand
+        };
+
+        void write (ESM::ESMWriter& writer);
+        void readRecord (ESM::ESMReader& reader, uint32_t type);
+        void clear() override;
+
+        /*
+            Start of tes3mp addition
+
+            Allow unassigning an index directly from elsewhere in the code
+        */
+        void unassignIndex(int index);
+        /*
+            End of tes3mp addition
+        */
+
 
     private:
         struct keyData

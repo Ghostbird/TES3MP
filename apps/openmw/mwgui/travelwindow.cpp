@@ -10,6 +10,18 @@
 #include <components/misc/strings/conversion.hpp>
 #include <components/settings/values.hpp>
 
+/*
+    Start of tes3mp addition
+
+    Include additional headers for multiplayer purposes
+*/
+#include "../mwmp/Main.hpp"
+#include "../mwmp/Networking.hpp"
+#include "../mwmp/Worldstate.hpp"
+/*
+    End of tes3mp addition
+*/
+
 #include "../mwbase/environment.hpp"
 #include "../mwbase/mechanicsmanager.hpp"
 #include "../mwbase/windowmanager.hpp"
@@ -194,7 +206,23 @@ namespace MWGui
 
         // add gold to NPC trading gold pool
         MWMechanics::CreatureStats& npcStats = mPtr.getClass().getCreatureStats(mPtr);
-        npcStats.setGoldPool(npcStats.getGoldPool() + price);
+
+        /*
+            Start of tes3mp change (major)
+
+            Don't unilaterally change the merchant's gold pool on our client and instead let the server do it
+        */
+        //npcStats.setGoldPool(npcStats.getGoldPool() + price);
+
+        mwmp::ObjectList* objectList = mwmp::Main::get().getNetworking()->getObjectList();
+        objectList->reset();
+        objectList->packetOrigin = mwmp::CLIENT_GAMEPLAY;
+        objectList->addObjectMiscellaneous(mPtr, npcStats.getGoldPool() + price, npcStats.getLastRestockTime().getHour(),
+            npcStats.getLastRestockTime().getDay());
+        objectList->sendObjectMiscellaneous();
+        /*
+            End of tes3mp change (major)
+        */
 
         MWBase::Environment::get().getWindowManager()->fadeScreenOut(1);
         ESM::Position pos = *sender->getUserData<ESM::Position>();
@@ -212,6 +240,19 @@ namespace MWGui
             int hours = static_cast<int>(d / fTravelTimeMult);
             MWBase::Environment::get().getMechanicsManager()->rest(hours, true);
             MWBase::Environment::get().getWorld()->advanceTime(hours);
+            float d = (osg::Vec3f(pos.pos[0], pos.pos[1], 0) - osg::Vec3f(playerPos.pos[0], playerPos.pos[1], 0)).length();
+            int hours = static_cast<int>(d /MWBase::Environment::get().getWorld()->getStore().get<ESM::GameSetting>().find("fTravelTimeMult")->mValue.getFloat());
+            MWBase::Environment::get().getMechanicsManager()->rest(hours, true);
+
+            /*
+                Start of tes3mp change (major)
+
+                Multiplayer requires that time not get advanced here
+            */
+            //MWBase::Environment::get().getWorld()->advanceTime(hours);
+            /*
+                End of tes3mp change (major)
+            */
         }
 
         MWBase::Environment::get().getWindowManager()->removeGuiMode(GM_Travel);

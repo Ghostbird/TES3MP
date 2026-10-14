@@ -89,6 +89,17 @@ namespace MWMechanics
 
             void resetWorsenings();
         };
+            /*
+                Start of tes3mp addition
+
+                Track the actorId corresponding to these ActiveSpells
+            */
+            int mActorId;
+            /*
+                End of tes3mp addition
+            */
+
+            void rebuildEffects() const;
 
         typedef std::list<ActiveSpellParams> Collection;
         typedef Collection::const_iterator TIterator;
@@ -145,6 +156,33 @@ namespace MWMechanics
 
         /// Force resistances
         void addSpell(const ESM::Spell* spell, const MWWorld::Ptr& actor, bool ignoreResistances = true);
+            /*
+                Start of tes3mp addition
+
+                Add a separate addSpell() with a timestamp argument
+            */
+            void addSpell (const std::string& id, bool stack, std::vector<ActiveEffect> effects,
+                           const std::string& displayName, int casterActorId, MWWorld::TimeStamp timestamp, bool sendPacket = true);
+            /*
+                End of tes3mp addition
+            */
+
+            /// Removes the active effects from this spell/potion/.. with \a id
+            void removeEffects (const std::string& id);
+
+            /*
+                Start of tes3mp addition
+
+                Remove the spell with a certain ID and a certain timestamp, useful
+                when there are stacked spells with the same ID
+            */
+            bool removeSpellByTimestamp(const std::string& id, MWWorld::TimeStamp timestamp);
+            /*
+                End of tes3mp addition
+            */
+
+            /// Remove all active effects with this effect id
+            void purgeEffect (short effectId);
 
         /// Removes the active effects from this spell/potion/.. with \a id
         void removeEffectsBySourceSpellId(const MWWorld::Ptr& ptr, const ESM::RefId& id);
@@ -159,6 +197,28 @@ namespace MWMechanics
 
         /// Remove all effects that were cast by \a actor
         void purge(const MWWorld::Ptr& ptr, ESM::RefNum actor);
+            /*
+                Start of tes3mp addition
+
+                Allow the purging of an effect for a specific arg (attribute or skill)
+            */
+            void purgeEffectByArg(short effectId, int effectArg);
+            /*
+                End of tes3mp addition
+            */
+
+            /*
+                Start of tes3mp addition
+
+                Make it easy to get an effect's duration
+            */
+            float getEffectDuration(short effectId, std::string sourceId);
+            /*
+                End of tes3mp addition
+            */
+
+            /// Remove all spells
+            void clear();
 
         /// Remove all spells
         void clear(const MWWorld::Ptr& ptr);
@@ -173,6 +233,17 @@ namespace MWMechanics
         void skipWorsenings(double hours);
 
         void unloadActor(const MWWorld::Ptr& ptr);
+            /*
+                Start of tes3mp addition
+
+                Make it possible to set and get the actorId for these ActiveSpells
+            */
+            int getActorId() const;
+            void setActorId(int actorId);
+            /*
+                End of tes3mp addition
+            */
+
     };
 }
 

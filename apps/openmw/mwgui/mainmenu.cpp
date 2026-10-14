@@ -315,7 +315,18 @@ namespace MWGui
         if (state == MWBase::StateManager::State_Running)
             buttons.emplace_back("return");
 
-        buttons.emplace_back("newgame");
+        /*
+            Start of tes3mp change (major)
+
+            In multiplayer, the main menu should not have options for starting or loading the game,
+            so they have been removed
+
+            Saving the game should still be possible, as long as it's clear that the resulting
+            save is singleplayer-only; this will prevent players from completely losing their
+            characters and houses on servers if those servers ever go down
+        */
+
+        //buttons.emplace_back("newgame");
 
         if (state == MWBase::StateManager::State_Running
             && MWBase::Environment::get().getWorld()->getGlobalInt(MWWorld::Globals::sCharGenState) == -1
@@ -325,6 +336,11 @@ namespace MWGui
         if (MWBase::Environment::get().getStateManager()->characterBegin()
             != MWBase::Environment::get().getStateManager()->characterEnd())
             buttons.emplace_back("loadgame");
+        */
+
+        /*
+            End of tes3mp change (major)
+        */
 
         buttons.emplace_back("options");
 

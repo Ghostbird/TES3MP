@@ -13,6 +13,18 @@
 #include <components/esm3/loadingr.hpp>
 #include <components/esm3/loadmgef.hpp>
 
+/*
+    Start of tes3mp addition
+
+    Include additional headers for multiplayer purposes
+*/
+#include "../mwmp/Main.hpp"
+#include "../mwmp/Networking.hpp"
+#include "../mwmp/ObjectList.hpp"
+/*
+    End of tes3mp addition
+*/
+
 #include "../mwbase/environment.hpp"
 #include "../mwbase/windowmanager.hpp"
 #include "../mwbase/world.hpp"
@@ -130,6 +142,16 @@ namespace MWGui
         MWMechanics::Alchemy::Result result = mAlchemy->create(mNameEdit->getCaption(), count);
         MWBase::WindowManager* winMgr = MWBase::Environment::get().getWindowManager();
 
+        /*
+            Start of tes3mp addition
+
+            Declare objectList here so we can use it below
+        */
+        mwmp::ObjectList *objectList = mwmp::Main::get().getNetworking()->getObjectList();
+        /*
+            End of tes3mp addition
+        */
+
         switch (result)
         {
             case MWMechanics::Alchemy::Result_NoName:
@@ -154,6 +176,55 @@ namespace MWGui
                 winMgr->messageBox("#{sNotifyMessage8}");
                 winMgr->playSound(ESM::RefId::stringRefId("potion fail"));
                 break;
+        case MWMechanics::Alchemy::Result_NoName:
+            winMgr->messageBox("#{sNotifyMessage37}");
+            break;
+        case MWMechanics::Alchemy::Result_NoMortarAndPestle:
+            winMgr->messageBox("#{sNotifyMessage45}");
+            break;
+        case MWMechanics::Alchemy::Result_LessThanTwoIngredients:
+            winMgr->messageBox("#{sNotifyMessage6a}");
+            break;
+        case MWMechanics::Alchemy::Result_Success:
+            winMgr->playSound("potion success");
+
+            /*
+                Start of tes3mp addition
+
+                Send an ID_OBJECT_SOUND packet every time the player makes a sound here
+            */
+            objectList->reset();
+            objectList->packetOrigin = mwmp::CLIENT_GAMEPLAY;
+            objectList->addObjectSound(MWMechanics::getPlayer(), "potion success", 1.0, 1.0);
+            objectList->sendObjectSound();
+            /*
+                End of tes3mp addition
+            */
+
+            if (count == 1)
+                winMgr->messageBox("#{sPotionSuccess}");
+            else
+                winMgr->messageBox("#{sPotionSuccess} "+mNameEdit->getCaption()+" ("+std::to_string(count)+")");
+            break;
+        case MWMechanics::Alchemy::Result_NoEffects:
+        case MWMechanics::Alchemy::Result_RandomFailure:
+            winMgr->messageBox("#{sNotifyMessage8}");
+            winMgr->playSound("potion fail");
+
+            /*
+                Start of tes3mp addition
+
+                Send an ID_OBJECT_SOUND packet every time the player makes a sound here
+            */
+            objectList->reset();
+            objectList->packetOrigin = mwmp::CLIENT_GAMEPLAY;
+            objectList->addObjectSound(MWMechanics::getPlayer(), "potion fail", 1.0, 1.0);
+            objectList->sendObjectSound();
+            /*
+                End of tes3mp addition
+            */
+
+            break;
         }
 
         // remove ingredient slots that have been fully used up

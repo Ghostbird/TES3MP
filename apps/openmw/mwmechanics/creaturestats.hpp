@@ -197,6 +197,16 @@ namespace MWMechanics
         int getFriendlyHits() const;
         ///< Number of friendly hits received.
 
+        /*
+            Start of tes3mp addition
+
+            Make it possible to set the number of friendly hits from elsewhere
+        */
+        void setFriendlyHits(int hits);
+        /*
+            End of tes3mp addition
+        */
+
         void friendlyHit();
         ///< Increase number of friendly hits by one.
 
@@ -232,6 +242,17 @@ namespace MWMechanics
         bool getBlock() const;
 
         std::multimap<ESM::RefId, ESM::RefNum>& getSummonedCreatureMap(); // <Effect, summoned creature>
+
+         /*
+            Start of tes3mp addition
+
+            Make it possible to set a new actorId for summoned creatures, necessary for properly
+            initializing them after syncing them across players
+         */
+        void setSummonedCreatureActorId(std::string refId, int actorId);
+        /*
+            End of tes3mp addition
+        */
 
         enum Flag
         {

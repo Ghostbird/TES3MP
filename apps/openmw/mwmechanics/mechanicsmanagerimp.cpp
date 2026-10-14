@@ -16,6 +16,20 @@
 #include <components/sceneutil/positionattitudetransform.hpp>
 
 #include "../mwworld/class.hpp"
+/*
+    Start of tes3mp addition
+
+    Include additional headers for multiplayer purposes
+*/
+#include <components/openmw-mp/TimedLog.hpp>
+#include "../mwmp/Main.hpp"
+#include "../mwmp/LocalPlayer.hpp"
+#include "../mwmp/PlayerList.hpp"
+#include "../mwmp/CellController.hpp"
+/*
+    End of tes3mp addition
+*/
+
 #include "../mwworld/esmstore.hpp"
 #include "../mwworld/globals.hpp"
 #include "../mwworld/inventorystore.hpp"
@@ -596,6 +610,20 @@ namespace MWMechanics
 
     void MechanicsManager::getPersuasionDispositionChange(
         const MWWorld::Ptr& npc, PersuasionType type, bool& success, int& tempChange, int& permChange)
+    /*
+        Start of tes3mp addition
+
+        Make it possible to set the number of deaths for an actor with the given refId
+    */
+    void MechanicsManager::setDeaths(const std::string& refId, int number)
+    {
+        mActors.setDeaths(refId, number);
+    }
+    /*
+        End of tes3mp addition
+    */
+
+    void MechanicsManager::getPersuasionDispositionChange (const MWWorld::Ptr& npc, PersuasionType type, bool& success, float& tempChange, float& permChange)
     {
         const MWWorld::Store<ESM::GameSetting>& gmst
             = MWBase::Environment::get().getESMStore()->get<ESM::GameSetting>();
@@ -850,6 +878,33 @@ namespace MWMechanics
     namespace
     {
         std::set<ESM::RefId> makeBoundItemIdCache()
+
+        /*
+            Start of tes3mp change (major)
+
+            Avoid enabling AI in multiplayer
+        */
+        mAI = false;
+        /*
+            End of tes3mp change (major)
+        */
+    }
+
+    /*
+        Start of tes3mp change (major)
+
+        Move boundItemIDCache outside of the original isBoundItem(const MWWorld::Ptr& item)
+        method so it can be reused in the new isBoundItem(std::string itemId) method
+    */
+    std::set<std::string> boundItemIDCache;
+
+    bool MechanicsManager::isBoundItem(const MWWorld::Ptr& item)
+    {
+    /*
+        End of tes3mp change (major)
+    */
+        // If this is empty then we haven't executed the GMST cache logic yet; or there isn't any sMagicBound* GMST's for some reason
+        if (boundItemIDCache.empty())
         {
             std::set<ESM::RefId> boundItemIDCache;
 
@@ -882,6 +937,25 @@ namespace MWMechanics
     }
 
     bool MechanicsManager::isAllowedToUse(const MWWorld::Ptr& ptr, const MWWorld::Ptr& target, MWWorld::Ptr& victim)
+    /*
+        Start of tes3mp addition
+
+        Make it possible to check if an itemId corresponds to a bound item
+    */
+    bool MechanicsManager::isBoundItem(std::string itemId)
+    {
+        Misc::StringUtils::lowerCaseInPlace(itemId);
+
+        if (boundItemIDCache.count(itemId) != 0)
+            return true;
+
+        return false;
+    }
+    /*
+        End of tes3mp addition
+    */
+
+    bool MechanicsManager::isAllowedToUse (const MWWorld::Ptr& ptr, const MWWorld::Ptr& target, MWWorld::Ptr& victim)
     {
         if (target.isEmpty() || target == ptr)
             return true;
@@ -1175,6 +1249,17 @@ namespace MWMechanics
                 || (MWBase::Environment::get().getWorld()->getLOS(player, neighbor)
                     && awarenessCheck(player, neighbor)))
             {
+                /*
+                    Start of tes3mp addition
+                
+                    We need player-controlled NPCs to not report crimes committed by other players
+                */
+                if (mwmp::PlayerList::isDedicatedPlayer(neighbor))
+                    continue;
+                /*
+                    End of tes3mp addition
+                */
+
                 // NPC will complain about theft even if he will do nothing about it
                 if (type == OT_Theft || type == OT_Pickpocket)
                     MWBase::Environment::get().getDialogueManager()->say(neighbor, ESM::RefId::stringRefId("thief"));
@@ -1475,6 +1560,17 @@ namespace MWMechanics
                 if (playerRanks.find(factionID) != playerRanks.end())
                 {
                     player.getClass().getNpcStats(player).expell(factionID, true);
+                    /*
+                        Start of tes3mp addition
+
+                        Send an ID_PLAYER_FACTION packet every time a player is expelled from a faction
+                    */
+                    mwmp::Main::get().getLocalPlayer()->sendFactionExpulsionState(Misc::StringUtils::lowerCase(factionID), true);
+                    /*
+                        End of tes3mp addition
+                    */
+
+                    player.getClass().getNpcStats(player).expell(factionID);
                 }
             }
             else if (!factionId.empty())
@@ -1510,9 +1606,70 @@ namespace MWMechanics
         if (target == player || !attacker.getClass().isActor())
             return false;
 
+        /*
+            Start of tes3mp change (major)
+
+            Don't set DedicatedPlayers as being in combat with the attacker, to prevent
+            AI actors from deciding to reciprocate by also starting combat
+        */
+        if (mwmp::PlayerList::isDedicatedPlayer(target))
+            return false;
+        /*
+            End of tes3mp change (major)
+        */
+
         MWMechanics::CreatureStats& statsTarget = target.getClass().getCreatureStats(target);
         AiSequence& seq = statsTarget.getAiSequence();
         const bool inCombat = seq.isInCombat(attacker);
+        /*
+            Start of tes3mp change (major)
+
+            Allow collateral damage from dedicated players as well
+        */
+        if (attacker == player || mwmp::PlayerList::isDedicatedPlayer(attacker))
+        /*
+            End of tes3mp change (major)
+        */
+        {
+            std::set<MWWorld::Ptr> followersAttacker;
+            getActorsSidingWith(attacker, followersAttacker);
+
+            /*
+                Start of tes3mp change (major)
+
+                Check not only whether the target is on the same side as the attacker,
+                but also whether the attacker is on the same side as the target,
+                thus allowing for NPC companions of one player to forgive another player
+                when those players are allied
+            */
+            std::set<MWWorld::Ptr> followersTarget;
+            getActorsSidingWith(target, followersTarget);
+
+            if (followersAttacker.find(target) != followersAttacker.end() || followersTarget.find(attacker) != followersTarget.end())
+            /*
+                End of tes3mp change (major)
+            */
+            {
+                statsTarget.friendlyHit();
+
+                /*
+                    Start of tes3mp change (major)
+
+                    Due to a greater propensity for collateral damage in multiplayer,
+                    allow more friendly hits
+
+                    TODO: Allow the server to change the count of the friendly hits
+                */
+                if (statsTarget.getFriendlyHits() < 8)
+                /*
+                    End of tes3mp change (major)
+                */
+                {
+                    MWBase::Environment::get().getDialogueManager()->say(target, "hit");
+                    return false;
+                }
+            }
+        }
 
         if (canCommitCrimeAgainst(target, attacker))
             commitCrime(attacker, target, MWBase::MechanicsManager::OT_Assault);
@@ -1520,6 +1677,21 @@ namespace MWMechanics
         if (!attacker.isEmpty()
             && (attacker.getClass().getCreatureStats(attacker).getAiSequence().isInCombat(target) || attacker == player)
             && !inCombat)
+        AiSequence& seq = statsTarget.getAiSequence();
+
+        /*
+            Start of tes3mp change (major)
+
+            Make it possible to start combat with DedicatedPlayers and DedicatedActors by
+            adding additional conditions for them
+        */
+        if (!attacker.isEmpty()
+            && (attacker.getClass().getCreatureStats(attacker).getAiSequence().isInCombat(target) || attacker == player
+                || mwmp::PlayerList::isDedicatedPlayer(attacker) || mwmp::Main::get().getCellController()->isDedicatedActor(attacker))
+            && !seq.isInCombat(attacker))
+        /*
+            End of tes3mp change (major)
+        */
         {
             // Attacker is in combat with us, but we are not in combat with the attacker yet. Time to fight back.
             // Note: accidental or collateral damage attacks are ignored.
@@ -1874,6 +2046,19 @@ namespace MWMechanics
     {
         return mActors.isAttackingOrSpell(ptr);
     }
+
+    /*
+        Start of tes3mp addition
+
+        Make it possible to set the attackingOrSpell state from elsewhere in the code
+    */
+    void MechanicsManager::setAttackingOrSpell(const MWWorld::Ptr &ptr, bool state) const
+    {
+        return mActors.setAttackingOrSpell(ptr, state);
+    }
+    /*
+        End of tes3mp addition
+    */
 
     void MechanicsManager::setWerewolf(const MWWorld::Ptr& actor, bool werewolf)
     {

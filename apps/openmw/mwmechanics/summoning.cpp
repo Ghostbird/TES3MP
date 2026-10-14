@@ -6,6 +6,21 @@
 #include <components/esm3/loadstat.hpp>
 #include <components/misc/resourcehelpers.hpp>
 
+/*
+    Start of tes3mp addition
+
+    Include additional headers for multiplayer purposes
+*/
+#include <components/openmw-mp/TimedLog.hpp>
+#include "../mwmechanics/creaturestats.hpp"
+#include "../mwmp/Main.hpp"
+#include "../mwmp/Networking.hpp"
+#include "../mwmp/CellController.hpp"
+#include "../mwmp/ObjectList.hpp"
+/*
+    End of tes3mp addition
+*/
+
 #include "../mwbase/environment.hpp"
 #include "../mwbase/mechanicsmanager.hpp"
 #include "../mwbase/world.hpp"
@@ -135,6 +150,70 @@ namespace MWMechanics
                     if (fx)
                         anim->addEffect(
                             Misc::ResourceHelpers::correctMeshPath(fx->mModel.getNormalized()).value(), "", false);
+                    int creatureActorId = -1;
+
+                    /*
+                        Start of tes3mp change (major)
+
+                        Send an ID_OBJECT_SPAWN packet every time a creature is summoned in a cell that we hold
+                        authority over, then delete the creature and wait for the server to send it back with a
+                        unique mpNum of its own
+
+                        Comment out most of the code here except for the actual placement of the Ptr and the
+                        creatureActorId insertion into the creatureMap
+                    */
+                    try
+                    {
+                        MWWorld::ManualRef ref(MWBase::Environment::get().getWorld()->getStore(), creatureID, 1);
+
+                        /*
+                        MWMechanics::CreatureStats& summonedCreatureStats = ref.getPtr().getClass().getCreatureStats(ref.getPtr());
+
+                        // Make the summoned creature follow its master and help in fights
+                        AiFollow package(mActor);
+                        summonedCreatureStats.getAiSequence().stack(package, ref.getPtr());
+                        creatureActorId = summonedCreatureStats.getActorId();
+                        */
+
+                        MWWorld::Ptr placed = MWBase::Environment::get().getWorld()->safePlaceObject(ref.getPtr(), mActor, mActor.getCell(), 0, 120.f);
+
+                        /*
+                        MWRender::Animation* anim = MWBase::Environment::get().getWorld()->getAnimation(placed);
+                        if (anim)
+                        {
+                            const ESM::Static* fx = MWBase::Environment::get().getWorld()->getStore().get<ESM::Static>()
+                                    .search("VFX_Summon_Start");
+                            if (fx)
+                                anim->addEffect("meshes\\" + fx->mModel, -1, false);
+                        }
+                        */
+
+                        if (mwmp::Main::get().getCellController()->hasLocalAuthority(*placed.getCell()->getCell()))
+                        {
+                            mwmp::ObjectList *objectList = mwmp::Main::get().getNetworking()->getObjectList();
+                            objectList->reset();
+                            objectList->packetOrigin = mwmp::CLIENT_GAMEPLAY;
+
+                            MWMechanics::CreatureStats *actorCreatureStats = &mActor.getClass().getCreatureStats(mActor);
+                            int effectId = it->mEffectId;
+                            std::string sourceId = it->mSourceId;
+                            float duration = actorCreatureStats->getActiveSpells().getEffectDuration(effectId, sourceId);
+                            objectList->addObjectSpawn(placed, mActor, sourceId, effectId, duration);
+                            objectList->sendObjectSpawn();
+                        }
+
+                        MWBase::Environment::get().getWorld()->deleteObject(placed);
+                    }
+                    catch (std::exception& e)
+                    {
+                        Log(Debug::Error) << "Failed to spawn summoned creature: " << e.what();
+                        // still insert into creatureMap so we don't try to spawn again every frame, that would spam the warning log
+                    }
+
+                    creatureMap.emplace(*it, creatureActorId);
+                    /*
+                        End of tes3mp change (major)
+                    */
                 }
             }
             catch (std::exception& e)

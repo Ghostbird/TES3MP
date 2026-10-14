@@ -269,6 +269,17 @@ namespace MWPhysics
         /// Mark the given object as a 'non-solid' object. A non-solid object means that
         /// \a isOnSolidGround will return false for actors standing on that object.
         void markAsNonSolid(const MWWorld::ConstPtr& ptr);
+            /*
+                Start of tes3mp addition
+
+                Make it possible to set the physics framerate from elsewhere
+            */
+            void setPhysicsFramerate(float physFramerate);
+            /*
+                End of tes3mp addition
+            */
+
+            void updateAnimatedCollisionShape(const MWWorld::Ptr& object);
 
         bool isOnSolidGround(const MWWorld::Ptr& actor) const;
 

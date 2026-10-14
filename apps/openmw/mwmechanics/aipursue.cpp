@@ -11,6 +11,20 @@
 
 #include "actorutil.hpp"
 #include "character.hpp"
+/*
+    Start of tes3mp addition
+
+    Include additional headers for multiplayer purposes
+*/
+#include <components/openmw-mp/TimedLog.hpp>
+#include "../mwgui/windowmanagerimp.hpp"
+#include "../mwmp/Main.hpp"
+#include "../mwmp/LocalPlayer.hpp"
+/*
+    End of tes3mp addition
+*/
+
+#include "movement.hpp"
 #include "creaturestats.hpp"
 #include "npcstats.hpp"
 
@@ -49,6 +63,27 @@ namespace MWMechanics
 
         if (target.getClass().getNpcStats(target).getBounty() <= 0)
             return true;
+    /*
+        Start of tes3mp addition
+
+        Because multiplayer does not pause the game, prevent infinite arrest loops by ignoring
+        players already engaged in dialogue while retaining the AiPursue package
+
+        Additionally, do not arrest players who are currently jailed
+    */
+    if (target == MWBase::Environment::get().getWorld()->getPlayerPtr())
+    {
+        if (MWBase::Environment::get().getWindowManager()->containsMode(MWGui::GM_Dialogue) ||
+            MWBase::Environment::get().getWindowManager()->containsMode(MWGui::GM_Jail))
+        {
+            return false;
+        }
+    }
+    /*
+        End of tes3mp addition
+    */
+
+    actor.getClass().getCreatureStats(actor).setDrawState(DrawState_Nothing);
 
         actor.getClass().getCreatureStats(actor).setDrawState(DrawState::Nothing);
 
@@ -62,6 +97,28 @@ namespace MWMechanics
         bool reached = pathTo(actor, dest, duration, characterController.getSupportedMovementDirections(),
                            pathTolerance, (actorPos - dest).length(), PathType::Partial)
             && std::abs(dest.z() - actorPos.z()) < pathTolerance;
+    if (reached)
+    {
+        if (!MWBase::Environment::get().getWorld()->getLOS(target, actor))
+            return false;
+
+        /*
+            Start of tes3mp addition
+
+            Record that the player has not died since the last attempt to arrest them
+
+            Close the player's inventory or open container and cancel any drag and drops
+        */
+        LOG_MESSAGE_SIMPLE(TimedLog::LOG_INFO, "After being pursued by %s, diedSinceArrestAttempt is now false", actor.getCellRef().getRefId().c_str());
+        mwmp::Main::get().getLocalPlayer()->diedSinceArrestAttempt = false;
+        mwmp::Main::get().getLocalPlayer()->closeInventoryWindows();
+        /*
+            End of tes3mp addition
+        */
+
+        MWBase::Environment::get().getWindowManager()->pushGuiMode(MWGui::GM_Dialogue, actor); //Arrest player when reached
+        return true;
+    }
 
         if (reached)
         {

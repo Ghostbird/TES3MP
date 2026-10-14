@@ -3,6 +3,22 @@
 #include <limits>
 #include <stdexcept>
 
+/*
+    Start of tes3mp addition
+
+    Include additional headers for multiplayer purposes
+*/
+#include "../mwmp/Main.hpp"
+#include "../mwmp/Networking.hpp"
+#include "../mwmp/ObjectList.hpp"
+#include "../mwmp/ScriptController.hpp"
+/*
+    End of tes3mp addition
+*/
+
+#include "../mwworld/cellstore.hpp"
+#include "../mwworld/class.hpp"
+
 #include <components/compiler/opcodes.hpp>
 
 #include <components/interpreter/interpreter.hpp>
@@ -58,6 +74,28 @@ namespace MWScript
                 MWBase::Environment::get().getMechanicsManager()->playAnimationGroup(
                     ptr, group, mode, std::numeric_limits<uint32_t>::max(), true);
             }
+                    /*
+                        Start of tes3mp addition
+
+                        Send an ID_OBJECT_ANIM_PLAY every time an animation is played for an object
+                        through an approved script
+                    */
+                    if (mwmp::Main::isValidPacketScript(ptr.getClass().getScript(ptr)))
+                    {
+                        mwmp::ObjectList *objectList = mwmp::Main::get().getNetworking()->getObjectList();
+                        objectList->reset();
+
+                        objectList->packetOrigin = ScriptController::getPacketOriginFromContextType(runtime.getContext().getContextType());
+                        objectList->originClientScript = runtime.getContext().getCurrentScriptName();
+                        objectList->addObjectAnimPlay(ptr, group, mode);
+                        objectList->sendObjectAnimPlay();
+                    }
+                    /*
+                        End of tes3mp addition
+                    */
+
+                    MWBase::Environment::get().getMechanicsManager()->playAnimationGroup (ptr, group, mode, std::numeric_limits<int>::max(), true);
+               }
         };
 
         template <class R>

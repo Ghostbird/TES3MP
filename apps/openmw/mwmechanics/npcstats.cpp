@@ -221,6 +221,67 @@ void MWMechanics::NpcStats::setLevelProgress(int progress)
     mLevelProgress = progress;
 }
 
+/*
+    Start of tes3mp addition
+
+    Make it possible to set a player's level progress directly instead of going
+    through other methods
+*/
+void MWMechanics::NpcStats::setLevelProgress(int value)
+{
+    mLevelProgress = value;
+}
+/*
+    End of tes3mp addition
+*/
+
+/*
+    Start of tes3mp addition
+
+    Make it possible to get a player's skill increases for an attribute directly
+    instead of going through other methods
+*/
+int MWMechanics::NpcStats::getSkillIncrease(int attribute) const
+{
+    return mSkillIncreases[attribute];
+}
+/*
+    End of tes3mp addition
+*/
+
+/*
+    Start of tes3mp addition
+
+    Make it possible to set a player's skill increases for an attribute directly
+    instead of going through other methods
+*/
+void MWMechanics::NpcStats::setSkillIncrease(int attribute, int value)
+{
+    mSkillIncreases[attribute] = value;
+}
+/*
+    End of tes3mp addition
+*/
+
+/*
+    Start of tes3mp addition
+
+    Make it possible to get and set the time of the last crime witnessed by the NPC,
+    used to stop combat with a player after that player dies and is resurrected
+*/
+std::time_t MWMechanics::NpcStats::getCrimeTime()
+{
+    return mCrimeTime;
+}
+
+void MWMechanics::NpcStats::setCrimeTime(std::time_t crimeTime)
+{
+    mCrimeTime = crimeTime;
+}
+/*
+    End of tes3mp addition
+*/
+
 void MWMechanics::NpcStats::levelUp()
 {
     const MWWorld::Store<ESM::GameSetting>& gmst = MWBase::Environment::get().getESMStore()->get<ESM::GameSetting>();
@@ -336,6 +397,17 @@ int MWMechanics::NpcStats::getCrimeId() const
 void MWMechanics::NpcStats::setCrimeId(int id)
 {
     mCrimeId = id;
+
+    /*
+        Start of tes3mp addition
+
+        Record this as the time of the last crime witnessed by this NPC
+    */
+    if (id != -1)
+        setCrimeTime(time(0));
+    /*
+        End of tes3mp addition
+    */
 }
 
 bool MWMechanics::NpcStats::hasSkillsForRank(const ESM::RefId& factionId, int rank) const

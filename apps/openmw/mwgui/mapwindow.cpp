@@ -16,6 +16,20 @@
 
 #include <components/esm3/esmwriter.hpp>
 #include <components/esm3/globalmap.hpp>
+/*
+    Start of tes3mp addition
+
+    Include additional headers for multiplayer purposes
+*/
+#include "../mwmp/Main.hpp"
+#include "../mwmp/GUIController.hpp"
+/*
+    End of tes3mp addition
+*/
+
+#include <components/esm/globalmap.hpp>
+#include <components/esm/esmwriter.hpp>
+#include <components/settings/settings.hpp>
 #include <components/myguiplatform/myguitexture.hpp>
 #include <components/settings/values.hpp>
 
@@ -187,11 +201,31 @@ namespace MWGui
         , mCustomMarkers(markers)
     {
         mCustomMarkers.eventMarkersChanged += MyGUI::newDelegate(this, &LocalMapBase::updateCustomMarkers);
+        
+        /*
+            Start of tes3mp addition
+
+            Add a MyGUI delegate for updating player markers
+        */
+        mwmp::Main::get().getGUIController()->mPlayerMarkers.eventMarkersChanged += MyGUI::newDelegate(this, &LocalMapBase::updatePlayerMarkers);
+        /*
+            End of tes3mp addition
+        */
     }
 
     LocalMapBase::~LocalMapBase()
     {
         mCustomMarkers.eventMarkersChanged -= MyGUI::newDelegate(this, &LocalMapBase::updateCustomMarkers);
+
+        /*
+            Start of tes3mp addition
+
+            Remove a MyGUI delegate for updating player markers
+        */
+        mwmp::Main::get().getGUIController()->mPlayerMarkers.eventMarkersChanged -= MyGUI::newDelegate(this, &LocalMapBase::updatePlayerMarkers);
+        /*
+            End of tes3mp addition
+        */
     }
 
     MWGui::LocalMapBase::MapEntry& LocalMapBase::addMapEntry()
@@ -376,6 +410,35 @@ namespace MWGui
     }
 
     void LocalMapBase::setActiveCell(const MWWorld::Cell& cell)
+    /*
+        Start of tes3mp addition
+
+        Send the LocalMapBase to our GUIController when updating player markers
+    */
+    void LocalMapBase::updatePlayerMarkers()
+    {
+        mwmp::Main::get().getGUIController()->updatePlayersMarkers(this);
+    }
+    /*
+        End of tes3mp addition
+    */
+
+    /*
+        Start of tes3mp addition
+
+        Send the MapWindow to our GUIController when updating player markers
+    */
+    void MapWindow::updatePlayerMarkers()
+    {
+        LocalMapBase::updatePlayerMarkers();
+
+        mwmp::Main::get().getGUIController()->updateGlobalMapMarkerTooltips(this);
+    }
+    /*
+        End of tes3mp addition
+    */
+
+    void LocalMapBase::setActiveCell(const int x, const int y, bool interior)
     {
         if (&cell == mActiveCell)
             return; // don't do anything if we're still in the same cell
@@ -1206,6 +1269,19 @@ namespace MWGui
         imageX *= mGlobalMapZoom;
         imageY *= mGlobalMapZoom;
     }
+    /*
+        Start of tes3mp addition
+
+        Allow the setting of the image data for a global map tile from elsewhere
+        in the code
+    */
+    void MapWindow::setGlobalMapImage(int cellX, int cellY, const std::vector<char>& imageData)
+    {
+        mGlobalMapRender->setImage(cellX, cellY, imageData);
+    }
+    /*
+        End of tes3mp addition
+    */
 
     void MapWindow::updateCustomMarkers()
     {

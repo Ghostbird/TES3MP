@@ -5,6 +5,20 @@
 #include <components/misc/rng.hpp>
 #include <components/misc/strings/format.hpp>
 
+/*
+    Start of tes3mp addition
+
+    Include additional headers for multiplayer purposes
+*/
+#include "../mwmp/Main.hpp"
+#include "../mwmp/Networking.hpp"
+#include "../mwmp/LocalPlayer.hpp"
+#include "../mwmp/MechanicsHelper.hpp"
+/*
+    End of tes3mp addition
+*/
+
+#include "../mwbase/world.hpp"
 #include "../mwbase/environment.hpp"
 #include "../mwbase/windowmanager.hpp"
 #include "../mwbase/world.hpp"
@@ -51,6 +65,61 @@ namespace MWMechanics
             luckTerm = 1;
 
         float intelligenceTerm = 0.2f * stats.getAttribute(ESM::Attribute::Intelligence).getModified();
+        /*
+            Start of tes3mp change (minor)
+
+            Send PlayerInventory packets that replace the original item with the new one
+        */
+        mwmp::LocalPlayer *localPlayer = mwmp::Main::get().getLocalPlayer();
+        mwmp::Item removedItem = MechanicsHelper::getItem(item, 1);
+
+        item.getCellRef().setEnchantmentCharge(
+            std::min(item.getCellRef().getEnchantmentCharge() + restored, static_cast<float>(enchantment->mData.mCharge)));
+
+        mwmp::Item addedItem = MechanicsHelper::getItem(item, 1);
+
+        localPlayer->sendItemChange(addedItem, mwmp::InventoryChanges::ADD);
+        localPlayer->sendItemChange(removedItem, mwmp::InventoryChanges::REMOVE);
+        /*
+            End of tes3mp change (minor)
+        */
+
+        MWBase::Environment::get().getWindowManager()->playSound("Enchant Success");
+
+        player.getClass().getContainerStore(player).restack(item);
+
+        /*
+            Start of tes3mp addition
+
+            Send an ID_OBJECT_SOUND packet every time the player makes a sound here
+        */
+        mwmp::ObjectList *objectList = mwmp::Main::get().getNetworking()->getObjectList();
+        objectList->reset();
+        objectList->packetOrigin = mwmp::CLIENT_GAMEPLAY;
+        objectList->addObjectSound(MWMechanics::getPlayer(), "Enchant Success", 1.0, 1.0);
+        objectList->sendObjectSound();
+        /*
+            End of tes3mp addition
+        */
+    }
+    else
+    {
+        MWBase::Environment::get().getWindowManager()->playSound("Enchant Fail");
+
+        /*
+            Start of tes3mp addition
+
+            Send an ID_OBJECT_SOUND packet every time the player makes a sound here
+        */
+        mwmp::ObjectList *objectList = mwmp::Main::get().getNetworking()->getObjectList();
+        objectList->reset();
+        objectList->packetOrigin = mwmp::CLIENT_GAMEPLAY;
+        objectList->addObjectSound(MWMechanics::getPlayer(), "Enchant Fail", 1.0, 1.0);
+        objectList->sendObjectSound();
+        /*
+            End of tes3mp addition
+        */
+    }
 
         if (intelligenceTerm > 20)
             intelligenceTerm = 20;

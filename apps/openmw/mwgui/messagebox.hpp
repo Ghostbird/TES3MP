@@ -32,6 +32,23 @@ namespace MWGui
         std::size_t getMessagesCount();
 
         const InteractiveMessageBox* getInteractiveMessageBox() const { return mInterMessageBoxe.get(); }
+        public:
+            MessageBoxManager (float timePerChar);
+            ~MessageBoxManager ();
+            void onFrame (float frameDuration);
+            void createMessageBox (const std::string& message, bool stat = false);
+            void removeStaticMessageBox ();
+            /*
+                Start of tes3mp change (major)
+
+                Add a hasServerOrigin boolean to the list of arguments so those messageboxes
+                can be differentiated from client-only ones
+            */
+            bool createInteractiveMessageBox (const std::string& message, const std::vector<std::string>& buttons, bool hasServerOrigin = false);
+            /*
+                End of tes3mp change (major)
+            */
+            bool isInteractiveMessageBox ();
 
         /// Remove all message boxes
         void clear();
@@ -107,6 +124,18 @@ namespace MWGui
 
     private:
         void buttonActivated(MyGUI::Widget* widget);
+            /*
+                Start of tes3mp addition
+
+                Track whether the message box has a server origin
+            */
+            bool mHasServerOrigin = false;
+            /*
+                End of tes3mp addition
+            */
+
+        private:
+            void buttonActivated (MyGUI::Widget* _widget);
 
         MessageBoxManager& mMessageBoxManager;
         MyGUI::EditBox* mMessageWidget;

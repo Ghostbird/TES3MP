@@ -343,6 +343,54 @@ namespace MWMechanics
 
         MWWorld::MovementDirectionFlags getSupportedMovementDirections() const;
     };
+    KillResult kill();
+
+    void resurrect();
+    bool isDead() const
+    { return mDeathState != CharState_None; }
+
+    void forceStateUpdate();
+    
+    bool isAttackPreparing() const;
+    bool isCastingSpell() const;
+    bool isReadyToBlock() const;
+    bool isKnockedDown() const;
+    bool isKnockedOut() const;
+    bool isRecovery() const;
+    bool isSneaking() const;
+    bool isRunning() const;
+    bool isTurning() const;
+    bool isAttackingOrSpell() const;
+
+    void setVisibility(float visibility);
+    void setAttackingOrSpell(bool attackingOrSpell);
+    void castSpell(const std::string spellId, bool manualSpell=false);
+    void setAIAttackType(const std::string& attackType);
+    static void setAttackTypeRandomly(std::string& attackType);
+
+    bool readyToPrepareAttack() const;
+    bool readyToStartAttack() const;
+
+    float getAttackStrength() const;
+
+    /*
+        Start of tes3mp addition
+
+        Make it possible to get the current attack type from elsewhere in the code
+    */
+    std::string getAttackType() const;
+    /*
+        End of tes3mp addition
+    */
+
+    /// @see Animation::setActive
+    void setActive(int active);
+
+    /// Make this character turn its head towards \a target. To turn off head tracking, pass an empty Ptr.
+    void setHeadTrackTarget(const MWWorld::ConstPtr& target);
+
+    void playSwishSound(float attackStrength);
+};
 }
 
 #endif /* GAME_MWMECHANICS_CHARACTER_HPP */

@@ -6,6 +6,17 @@
 
 #include <components/esm3/loadmgef.hpp>
 
+/*
+    Start of tes3mp addition
+
+    Include additional headers for multiplayer purposes
+*/
+#include "../mwmp/Main.hpp"
+#include "../mwmp/LocalPlayer.hpp"
+/*
+    End of tes3mp addition
+*/
+
 #include "../mwbase/environment.hpp"
 #include "../mwbase/world.hpp"
 
@@ -156,6 +167,17 @@ namespace MWMechanics
             if (filter(spell))
             {
                 iter = mSpells.erase(iter);
+                /*
+                    Start of tes3mp addition
+
+                    Send an ID_PLAYER_SPELLBOOK packet every time a spell is purged here
+                */
+                mwmp::Main::get().getLocalPlayer()->sendSpellChange(spell->mId, mwmp::SpellbookChanges::REMOVE);
+                /*
+                    End of tes3mp addition
+                */
+
+                mSpells.erase(iter++);
                 purged.push_back(spell->mId);
             }
             else
@@ -214,7 +236,36 @@ namespace MWMechanics
             mUsedPowers.emplace_back(spell, timestamp);
         else
             it->second = timestamp;
+        mUsedPowers[spell] = MWBase::Environment::get().getWorld()->getTimeStamp();
+
+        /*
+            Start of tes3mp addition
+
+            Send an ID_PLAYER_COOLDOWN packet every time a cooldown is recorded here
+        */
+        mwmp::Main::get().getLocalPlayer()->sendCooldownChange(spell->mId, MWBase::Environment::get().getWorld()->getTimeStamp().getDay(),
+            MWBase::Environment::get().getWorld()->getTimeStamp().getHour());
+        /*
+            End of tes3mp addition
+        */
     }
+
+    /*
+        Start of tes3mp addition
+
+        Make it possible to set timestamps for power cooldowns, necessary for ID_PLAYER_COOLDOWNS packets
+    */
+    void Spells::setPowerUseTimestamp(const ESM::Spell* spell, int startDay, float startHour)
+    {
+        ESM::TimeStamp timestamp;
+        timestamp.mDay = startDay;
+        timestamp.mHour = startHour;
+
+        mUsedPowers[spell] = MWWorld::TimeStamp(timestamp);
+    }
+    /*
+        End of tes3mp addition
+    */
 
     void Spells::readState(const ESM::SpellState& state, CreatureStats* creatureStats)
     {

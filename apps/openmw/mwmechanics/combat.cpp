@@ -13,6 +13,21 @@
 #include <components/esm3/loadsoun.hpp>
 
 #include "../mwbase/dialoguemanager.hpp"
+/*
+    Start of tes3mp addition
+
+    Include additional headers for multiplayer purposes
+*/
+#include <components/openmw-mp/TimedLog.hpp>
+#include "../mwmp/Main.hpp"
+#include "../mwmp/LocalPlayer.hpp"
+#include "../mwmp/PlayerList.hpp"
+#include "../mwmp/CellController.hpp"
+#include "../mwmp/MechanicsHelper.hpp"
+/*
+    End of tes3mp addition
+*/
+
 #include "../mwbase/environment.hpp"
 #include "../mwbase/luamanager.hpp"
 #include "../mwbase/mechanicsmanager.hpp"
@@ -146,10 +161,34 @@ namespace MWMechanics
                 sndMgr->playSound3D(blocker, ESM::RefId::stringRefId("Medium Armor Hit"), 1.0f, 1.0f);
             else if (skill == ESM::Skill::HeavyArmor)
                 sndMgr->playSound3D(blocker, ESM::RefId::stringRefId("Heavy Armor Hit"), 1.0f, 1.0f);
+        /*
+            Start of tes3mp change (major)
+
+            Only calculate block chance for LocalPlayers and LocalActors; otherwise,
+            get the block state from the relevant DedicatedPlayer or DedicatedActor
+        */
+        mwmp::Attack *localAttack = MechanicsHelper::getLocalAttack(attacker);
+
+        if (localAttack)
+        {
+            localAttack->block = false;
+        }
+
+        mwmp::Attack *dedicatedAttack = MechanicsHelper::getDedicatedAttack(blocker);
+
+        if ((dedicatedAttack && dedicatedAttack->block == true) ||
+            Misc::Rng::roll0to99() < x)
+        {
+            if (localAttack)
+            {
+                localAttack->block = true;
+            }
+        /*
+            End of tes3mp change (major)
+        */
 
             // Reduce shield durability by incoming damage
             int shieldhealth = shield->getClass().getItemHealth(*shield);
-
             shieldhealth -= std::min(shieldhealth, int(damage));
             shield->getCellRef().setCharge(shieldhealth);
             if (shieldhealth == 0)
@@ -226,6 +265,30 @@ namespace MWMechanics
     {
         MWBase::World* world = MWBase::Environment::get().getWorld();
         const MWWorld::Store<ESM::GameSetting>& gmst = world->getStore().get<ESM::GameSetting>();
+        /*
+            Start of tes3mp addition
+
+            Ignore projectiles fired by DedicatedPlayers and DedicatedActors
+
+            If fired by LocalPlayers and LocalActors, get the associated LocalAttack and set its type
+            to RANGED while also marking it as a hit
+        */
+        if (mwmp::PlayerList::isDedicatedPlayer(attacker) || mwmp::Main::get().getCellController()->isDedicatedActor(attacker))
+            return;
+
+        mwmp::Attack *localAttack = MechanicsHelper::getLocalAttack(attacker);
+
+        if (localAttack)
+        {
+            localAttack->type = mwmp::Attack::RANGED;
+            localAttack->isHit = true;
+        }
+        /*
+            End of tes3mp addition
+        */
+
+        MWBase::World *world = MWBase::Environment::get().getWorld();
+        const MWWorld::Store<ESM::GameSetting> &gmst = world->getStore().get<ESM::GameSetting>();
 
         bool validVictim = !victim.isEmpty() && victim.getClass().isActor();
 
@@ -246,6 +309,31 @@ namespace MWMechanics
                 MWBase::Environment::get().getLuaManager()->onHit(attacker, victim, weapon, projectile, 0,
                     attackStrength, attackWindUp, damage, false, hitPosition, false,
                     MWMechanics::DamageSourceType::Ranged);
+            /*
+                Start of tes3mp addition
+
+                Mark this as a successful attack for the associated LocalAttack unless proven otherwise
+            */
+            if (localAttack)
+                localAttack->success = true;
+            /*
+                End of tes3mp addition
+            */
+
+            if (Misc::Rng::roll0to99() >= getHitChance(attacker, victim, skillValue))
+            {
+                /*
+                    Start of tes3mp addition
+
+                    Mark this as a failed LocalAttack now that the hit roll has failed
+                */
+                if (localAttack)
+                    localAttack->success = false;
+                /*
+                    End of tes3mp addition
+                */
+
+                victim.getClass().onHit(victim, damage, false, projectile, attacker, osg::Vec3f(), false);
                 MWMechanics::reduceWeaponCondition(damage, false, weapon, attacker);
                 return;
             }
@@ -292,6 +380,18 @@ namespace MWMechanics
         // Apply "On hit" effect of the projectile
         bool appliedEnchantment = applyOnStrikeEnchantment(attacker, victim, projectile, hitPosition, true);
 
+        /*
+            Start of tes3mp change (minor)
+
+            Track whether the strike enchantment is successful for attacks by the
+            LocalPlayer or LocalActors for their projectile
+        */
+        if (localAttack)
+            localAttack->applyAmmoEnchantment = appliedEnchantment;
+        /*
+            End of tes3mp change (minor)
+        */
+
         if (validVictim)
         {
             applyElementalShields(attacker, victim);
@@ -311,6 +411,19 @@ namespace MWMechanics
             MWBase::Environment::get().getLuaManager()->onHit(attacker, victim, weapon, projectile, 0, attackStrength,
                 attackWindUp, damage, true, hitPosition, true, MWMechanics::DamageSourceType::Ranged);
         }
+        /*
+            Start of tes3mp addition
+
+            If this is a local attack that had no victim, send a packet for it here
+        */
+        else if (localAttack)
+        {
+            localAttack->hitPosition = MechanicsHelper::getPositionFromVector(hitPosition);
+            localAttack->shouldSend = true;
+        }
+        /*
+            End of tes3mp addition
+        */
     }
 
     float getHitChance(const MWWorld::Ptr& attacker, const MWWorld::Ptr& victim, int skillValue)

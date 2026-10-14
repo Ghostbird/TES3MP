@@ -105,6 +105,20 @@ namespace MWMechanics
             return false;
 
         actor.getClass().getCreatureStats(actor).setDrawState(DrawState::Nothing);
+    /*
+        Start of tes3mp addition
+
+        If this follow package is set to allow for any distance, skip the checks below
+    */
+    if (mIgnoreDistance)
+        mActive = true;
+    /*
+        End of tes3mp addition
+    */
+
+    const osg::Vec3f actorPos(actor.getRefData().getPosition().asVec3());
+    const osg::Vec3f targetPos(target.getRefData().getPosition().asVec3());
+    const osg::Vec3f targetDir = targetPos - actorPos;
 
         AiFollowStorage& storage = state.get<AiFollowStorage>();
 
@@ -273,5 +287,18 @@ namespace MWMechanics
         if (mDuration > 0)
             mRemainingDuration--;
     }
+
+/*
+    Start of tes3mp addition
+
+    Make it possible to allow following from any distance
+*/
+void AiFollow::allowAnyDistance(bool state)
+{
+    mIgnoreDistance = state;
+}
+/*
+    End of tes3mp addition
+*/
 
 }
