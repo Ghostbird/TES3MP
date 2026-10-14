@@ -69,14 +69,14 @@ void mwmp::GUIController::setupChat()
 {
     assert(mChat == nullptr);
 
-    float chatDelay = Settings::Manager::getFloat("delay", "Chat");
-    int chatY = Settings::Manager::getInt("y", "Chat");
-    int chatX = Settings::Manager::getInt("x", "Chat");
-    int chatW = Settings::Manager::getInt("w", "Chat");
-    int chatH = Settings::Manager::getInt("h", "Chat");
+    float chatDelay = Settings::chat().mDelay;
+    int chatY = Settings::chat().mY;
+    int chatX = Settings::chat().mX;
+    int chatW = Settings::chat().mW;
+    int chatH = Settings::chat().mH;
 
-    keySay = SDL_GetScancodeFromName(Settings::Manager::getString("keySay", "Chat").c_str());
-    keyChatMode = SDL_GetScancodeFromName(Settings::Manager::getString("keyChatMode", "Chat").c_str());
+    keySay = SDL_GetScancodeFromName(Settings::chat().mKeySay.get().c_str());
+    keyChatMode = SDL_GetScancodeFromName(Settings::chat().mKeyChatMode.get().c_str());
 
     mChat = new GUIChat(chatX, chatY, chatW, chatH);
     mChat->setDelay(chatDelay);

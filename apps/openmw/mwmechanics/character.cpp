@@ -1718,8 +1718,6 @@ void CharacterController::playRandomDeath(float startpoint)
                     }
 
                     if (isMagicItem && !Settings::game().mUseMagicItemAnimations)
-                static const bool useCastingAnimations = Settings::Manager::getBool("use magic item animations", "Game");
-                if (isMagicItem && !useCastingAnimations)
                 {
                     // Enchanted items by default do not use casting animations
                     MWBase::Environment::get().getWorld()->castSpell(mPtr);

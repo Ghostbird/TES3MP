@@ -1,11 +1,11 @@
 #include <iostream>
 
 #include <boost/filesystem/fstream.hpp>
+#include <boost/program_options.hpp>
 #include <boost/iostreams/concepts.hpp>
 #include <boost/iostreams/stream_buffer.hpp>
 
 #include <components/files/configurationmanager.hpp>
-#include <components/files/escape.hpp>
 #include <components/settings/settings.hpp>
 #include <components/version/version.hpp>
 
@@ -110,6 +110,8 @@ private:
     std::ostream &out2;
 };
 
+typedef std::vector<std::string> StringsVector;
+
 boost::program_options::variables_map launchOptions(int argc, char *argv[], Files::ConfigurationManager& cfgMgr)
 {
     namespace bpo = boost::program_options;
@@ -118,20 +120,20 @@ boost::program_options::variables_map launchOptions(int argc, char *argv[], File
 
     // Use the same option types as the OpenMW client so config files parse correctly
     desc.add_options()
-            ("resources", bpo::value<Files::EscapePath>()->default_value(Files::EscapePath(), "resources"), "set resources directory")
-            ("data", bpo::value<Files::EscapePathContainer>()->default_value(Files::EscapePathContainer(), "data")
+            ("resources", bpo::value<Files::MaybeQuotedPath>()->default_value(Files::MaybeQuotedPath(), "resources"), "set resources directory")
+            ("data", bpo::value<Files::MaybeQuotedPathContainer>()->default_value(Files::MaybeQuotedPathContainer(), "data")
                 ->multitoken()->composing(), "set data directories")
-            ("data-local", bpo::value<Files::EscapePath>()->default_value(Files::EscapePath(), ""),
+            ("data-local", bpo::value<Files::MaybeQuotedPath>()->default_value(Files::MaybeQuotedPath(), ""),
              "set local data directory")
             ("user-data", bpo::value<Files::MaybeQuotedPath>()->default_value(Files::MaybeQuotedPath(), ""),
              "set user data directory (used for saves, screenshots, etc.)")
-            ("content", bpo::value<Files::EscapeStringVector>()->default_value(Files::EscapeStringVector(), "")
+            ("content", bpo::value<StringsVector>()->default_value(StringsVector(), "")
                 ->multitoken()->composing(), "content file(s): esm/esp, or omwgame/omwaddon")
             ("replace", bpo::value<std::vector<std::string>>()->default_value(std::vector<std::string>(), "")
                 ->multitoken()->composing(), "settings where the values from the current source should replace those from lower-priority sources instead of being appended")
             ("config", bpo::value<Files::MaybeQuotedPathContainer>()->default_value(Files::MaybeQuotedPathContainer(), "")
                 ->multitoken()->composing(), "additional config directories")
-            ("fallback-archive", bpo::value<Files::EscapeStringVector>()->default_value(Files::EscapeStringVector(), "fallback-archive")
+            ("fallback-archive", bpo::value<StringsVector>()->default_value(StringsVector(), "fallback-archive")
                 ->multitoken()->composing(), "set fallback BSA archives")
             ("no-logs", bpo::value<bool>()->implicit_value(true)->default_value(false),
              "Do not write logs. Useful for daemonizing.");
