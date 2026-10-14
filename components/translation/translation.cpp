@@ -104,4 +104,23 @@ namespace Translation
     {
         mEncoder = encoder;
     }
+
+    /*
+        Start of tes3mp addition
+
+        Get the localized version of an English topic ID
+    */
+    std::string Storage::getLocalizedTopicId(const std::string& englishTopicId) const
+    {
+        for (ContainerType::const_iterator it = mKeywords.begin(); it != mKeywords.end(); ++it)
+        {
+            if (Misc::StringUtils::ciEqual(englishTopicId, it->second))
+                return it->first;
+        }
+
+        return "";
+    }
+    /*
+        End of tes3mp addition
+    */
 }

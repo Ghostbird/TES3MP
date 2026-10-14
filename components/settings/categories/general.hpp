@@ -32,6 +32,20 @@ namespace Settings
         SettingValue<bool> mGmstOverridesL10n{ mIndex, "General", "gmst overrides l10n" };
         SettingValue<std::size_t> mLogBufferSize{ mIndex, "General", "log buffer size" };
         SettingValue<std::size_t> mConsoleHistoryBufferSize{ mIndex, "General", "console history buffer size" };
+
+        // TES3MP server settings
+        SettingValue<std::string> mLocalAddress{ mIndex, "General", "localAddress" };
+        SettingValue<int> mPort{ mIndex, "General", "port" };
+        SettingValue<int> mMaximumPlayers{ mIndex, "General", "maximumPlayers" };
+        SettingValue<std::string> mHostname{ mIndex, "General", "hostname" };
+        SettingValue<int> mLogLevel{ mIndex, "General", "logLevel" };
+        SettingValue<std::string> mPassword{ mIndex, "General", "password" };
+        SettingValue<std::string> mPluginsHome{ mIndex, "Plugins", "home" };
+        SettingValue<std::string> mPluginsPlugins{ mIndex, "Plugins", "plugins" };
+        SettingValue<bool> mMasterEnabled{ mIndex, "MasterServer", "enabled" };
+        SettingValue<std::string> mMasterAddress{ mIndex, "MasterServer", "address" };
+        SettingValue<int> mMasterPort{ mIndex, "MasterServer", "port" };
+        SettingValue<int> mMasterRate{ mIndex, "MasterServer", "rate" };
     };
 }
 

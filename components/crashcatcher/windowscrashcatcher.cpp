@@ -250,15 +250,16 @@ namespace Crash
         CrashSHM::Status monitorStatus = mShm->mMonitorStatus;
         shmUnlock();
 
+        // Start of tes3mp change
+        // Use a TES3MP specific fatal error message.
+        std::string message = "TES3MP has encountered a fatal error.\nCrash log saved to '"
+            + std::string(mShm->mStartup.mLogFilePath)
+            + "'.\n Please report this to https://github.com/TES3MP/TES3MP/issues !";
         if (monitorStatus == CrashSHM::Status::DumpedSuccessfully)
-        {
-            std::string message = "OpenMW has encountered a fatal error.\nCrash dump saved to '"
-                + Misc::StringUtils::u8StringToString(getCrashDumpPath(*mShm).u8string())
-                + "'.\nPlease report this to https://gitlab.com/OpenMW/openmw/issues !";
             SDL_ShowSimpleMessageBox(0, "Fatal Error", message.c_str(), nullptr);
-        }
         else if (monitorStatus == CrashSHM::Status::Dumping)
             SDL_ShowSimpleMessageBox(0, "Fatal Error", "Timed out while creating crash dump", nullptr);
+        // End of tes3mp change
     }
 
 } // namespace Crash

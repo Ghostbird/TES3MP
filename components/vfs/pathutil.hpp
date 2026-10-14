@@ -280,7 +280,7 @@ namespace VFS::Path
 
         bool empty() const { return mValue.empty(); }
 
-        constexpr std::size_t size() const { return mValue.size(); }
+        std::size_t size() const { return mValue.size(); }
 
         operator std::string_view() const { return mValue; }
 
