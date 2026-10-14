@@ -55,6 +55,9 @@ option(BUILD_NAVMESHTOOL        "Build navmesh tool" ON)
 option(BUILD_BULLETOBJECTTOOL   "Build Bullet object tool" ON)
 option(BUILD_OPENCS_TESTS       "Build OpenMW Construction Set tests" OFF)
 option(BUILD_OPENMW_TESTS       "Build OpenMW tests" OFF)
+option(BUILD_OPENMW_MP          "Build TES3MP Server" ON)
+option(BUILD_BROWSER            "Build TES3MP Server Browser" ON)
+option(BUILD_MASTER             "Build TES3MP Master Server" OFF)
 option(PRECOMPILE_HEADERS_WITH_MSVC "Precompile most common used headers with MSVC (alternative to ccache)" ON)
 
 set(OpenGL_GL_PREFERENCE LEGACY)  # Use LEGACY as we use GL2; GLNVD is for GL3 and up.
@@ -357,7 +360,8 @@ add_subdirectory(extern)
 # Require at least FFmpeg 4.0
 SET(FFVER_OK FALSE)
 
-find_package(FFmpeg REQUIRED COMPONENTS AVCODEC AVFORMAT AVUTIL SWSCALE SWRESAMPLE)
+# TES3MP: Make FFmpeg optional for server-only builds
+find_package(FFmpeg COMPONENTS AVCODEC AVFORMAT AVUTIL SWSCALE SWRESAMPLE)
 
 if(FFmpeg_FOUND)
     SET(FFVER_OK TRUE)
@@ -389,7 +393,8 @@ if(FFmpeg_FOUND)
 endif()
 
 if(NOT FFmpeg_FOUND)
-    message(FATAL_ERROR "FFmpeg was not found" )
+    message(WARNING "FFmpeg was not found - video playback will be disabled")
+    set(FFmpeg_LIBRARIES "")
 endif()
 
 # Required for building the FFmpeg headers
@@ -544,9 +549,14 @@ if(HAVE_MULTIVIEW)
     add_compile_definitions(OSG_HAS_MULTIVIEW)
 endif(HAVE_MULTIVIEW)
 
-set(BOOST_COMPONENTS iostreams program_options)
+set(BOOST_COMPONENTS iostreams program_options filesystem)
 
-find_package(Boost 1.70.0 CONFIG REQUIRED COMPONENTS ${BOOST_COMPONENTS} OPTIONAL_COMPONENTS ${BOOST_OPTIONAL_COMPONENTS})
+# TES3MP: Try to find Boost, but make it optional for server-only builds
+find_package(Boost 1.70.0 CONFIG COMPONENTS ${BOOST_COMPONENTS} OPTIONAL_COMPONENTS ${BOOST_OPTIONAL_COMPONENTS})
+if(NOT Boost_FOUND)
+    message(WARNING "Boost not found - some features may be disabled")
+    set(Boost_LIBRARIES "")
+endif()
 
 if(OPENMW_USE_SYSTEM_MYGUI)
     find_package(MyGUI 3.4.3 REQUIRED)
@@ -805,6 +815,19 @@ endif()
 
 if (BUILD_OPENMW_TESTS)
     add_subdirectory(apps/openmw_tests)
+endif()
+
+# TES3MP specific apps
+if (BUILD_OPENMW_MP)
+    add_subdirectory(apps/openmw-mp)
+endif()
+
+if (BUILD_BROWSER)
+    add_subdirectory(apps/browser)
+endif()
+
+if (BUILD_MASTER)
+    add_subdirectory(apps/master)
 endif()
 
 if (WIN32)

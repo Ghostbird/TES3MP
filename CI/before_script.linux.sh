@@ -13,6 +13,8 @@ declare -a CMAKE_CONF_OPTS=(
     -DUSE_SYSTEM_TINYXML=ON
     -DOPENMW_USE_SYSTEM_RECASTNAVIGATION=ON
     -DOPENMW_CXX_FLAGS="${OPENMW_CXX_FLAGS}"  # flags specific to OpenMW project
+    -DRakNet_LIBRARY_RELEASE=~/CrabNet/lib/libRakNetLibStatic.a
+    -DRakNet_LIBRARY_DEBUG=~/CrabNet/lib/libRakNetLibStatic.a
 )
 
 if [[ "${CMAKE_EXE_LINKER_FLAGS}" ]]; then
