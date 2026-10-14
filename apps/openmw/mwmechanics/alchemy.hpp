@@ -14,7 +14,7 @@
     End of tes3mp addition
 */
 
-#include <components/esm/effectlist.hpp>
+#include <components/esm3/effectlist.hpp>
 
 #include "../mwworld/ptr.hpp"
 
