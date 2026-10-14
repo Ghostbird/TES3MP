@@ -82,6 +82,17 @@ namespace
             case 0:
                 throw std::logic_error(
                     "failed to create manual cell ref for " + name.toDebugString() + " (unknown ID)");
+        /*
+            Start of tes3mp addition
+
+            Set the mMpNum (unique multiplayer reference number) to 0 by default
+        */
+        cellRef.mMpNum = 0;
+        /*
+            End of tes3mp addition
+        */
+
+        MWWorld::LiveCellRef<T> ref(cellRef, base);
 
             default:
                 throw std::logic_error(

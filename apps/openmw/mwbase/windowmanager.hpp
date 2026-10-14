@@ -168,6 +168,19 @@ namespace MWBase
 
         virtual void updateSpellWindow() = 0;
 
+
+        /*
+            Start of tes3mp addition
+
+            Make it possible to get the ContainerWindow and the DialogueWindow from
+            elsewhere in the code
+        */
+        virtual MWGui::ContainerWindow* getContainerWindow() = 0;
+        virtual MWGui::DialogueWindow* getDialogueWindow() = 0;
+        /*
+            End of tes3mp addition
+        */
+
         virtual void setConsoleSelectedObject(const MWWorld::Ptr& object) = 0;
         virtual MWWorld::Ptr getConsoleSelectedObject() const = 0;
         virtual void setConsoleMode(std::string_view mode) = 0;
@@ -184,6 +197,20 @@ namespace MWBase
         /// @param maxTime how long we can be underwater (in total) until drowning starts
         virtual void setDrowningTimeLeft(float time, float maxTime) = 0;
 
+
+        /*
+            Start of tes3mp addition
+
+            Allow the direct setting of a console's Ptr, without the assumption that an object
+            was clicked and that key focus should be restored to the console window, for console
+            commands executed via server scripts, and allow clearing it again
+        */
+        virtual void setConsolePtr(const MWWorld::Ptr& object) = 0;
+        virtual void clearConsolePtr() = 0;
+        /*
+            End of tes3mp addition
+        */
+
         virtual void changeCell(const MWWorld::CellStore* cell) = 0;
         ///< change the active cell
 
@@ -197,6 +224,19 @@ namespace MWBase
         virtual void getMousePosition(float& x, float& y) = 0;
         virtual void setDragDrop(bool dragDrop) = 0;
         virtual bool getWorldMouseOver() = 0;
+
+
+        /*
+            Start of tes3mp addition
+
+            Allow the setting of the image data for a global map tile and the completion
+            of a drag and drop from elsewhere in the code
+        */
+        virtual void setGlobalMapImage(int cellX, int cellY, const std::vector<char>& imageData) = 0;
+        virtual void finishDragDrop() = 0;
+        /*
+            End of tes3mp addition
+        */
 
         virtual float getScalingFactor() const = 0;
 
@@ -237,6 +277,19 @@ namespace MWBase
         virtual bool setHudVisibility(bool show) = 0;
         virtual bool isHudVisible() const = 0;
 
+
+        /*
+            Start of tes3mp addition
+
+            Make it possible to add quickKeys and to run console commands from elsewhere
+            in the code
+        */
+        virtual void setQuickKey(int slot, int quickKeyType, MWWorld::Ptr item, const std::string& spellId = "") = 0;
+        virtual void executeCommandInConsole(const std::string& command) = 0;
+        /*
+            End of tes3mp addition
+        */
+
         virtual void disallowMouse() = 0;
         virtual void allowMouse() = 0;
         virtual void notifyInputActionBound() = 0;
@@ -259,9 +312,18 @@ namespace MWBase
             = 0;
         virtual void staticMessageBox(std::string_view message) = 0;
         virtual void removeStaticMessageBox() = 0;
+        /*
+            Start of tes3mp change (major)
+
+            Add a hasServerOrigin boolean to the list of arguments so those messageboxes
+            can be differentiated from client-only ones
+        */
         virtual void interactiveMessageBox(std::string_view message, const std::vector<std::string>& buttons = {},
-            bool block = false, int defaultFocus = -1)
+            bool block = false, int defaultFocus = -1, bool hasServerOrigin = false)
             = 0;
+        /*
+            End of tes3mp change (major)
+        */
 
         /// returns the index of the pressed button or -1 if no button was pressed
         /// (->MessageBoxmanager->InteractiveMessageBox)

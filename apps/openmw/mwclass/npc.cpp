@@ -23,6 +23,23 @@
 #include <components/vfs/pathutil.hpp>
 
 #include "../mwbase/dialoguemanager.hpp"
+/*
+    Start of tes3mp addition
+
+    Include additional headers for multiplayer purposes
+*/
+#include <components/openmw-mp/TimedLog.hpp>
+#include "../mwmp/Main.hpp"
+#include "../mwmp/Networking.hpp"
+#include "../mwmp/LocalPlayer.hpp"
+#include "../mwmp/PlayerList.hpp"
+#include "../mwmp/ObjectList.hpp"
+#include "../mwmp/CellController.hpp"
+#include "../mwmp/MechanicsHelper.hpp"
+/*
+    End of tes3mp addition
+*/
+
 #include "../mwbase/environment.hpp"
 #include "../mwbase/luamanager.hpp"
 #include "../mwbase/mechanicsmanager.hpp"
@@ -541,6 +558,22 @@ namespace MWClass
     {
         victim = MWWorld::Ptr();
         hitPosition = osg::Vec3f();
+        /*
+            Start of tes3mp addition
+
+            Ignore hit calculations on this client from DedicatedPlayers and DedicatedActors
+        */
+        if (mwmp::PlayerList::isDedicatedPlayer(ptr) || mwmp::Main::get().getCellController()->isDedicatedActor(ptr))
+        {
+            return;
+        }
+        /*
+            End of tes3mp addition
+        */
+
+        MWBase::World *world = MWBase::Environment::get().getWorld();
+
+        const MWWorld::Store<ESM::GameSetting> &store = world->getStore().get<ESM::GameSetting>();
 
         // Get the weapon used (if hand-to-hand, weapon = inv.end())
         MWWorld::InventoryStore& inv = getInventoryStore(ptr);
@@ -590,6 +623,27 @@ namespace MWClass
             return;
 
         if (!MWMechanics::isInMeleeReach(ptr, victim, MWMechanics::getMeleeWeaponReach(ptr, weapon)))
+        const MWWorld::Class &othercls = victim.getClass();
+        /*
+            Start of tes3mp change (major)
+
+            Send an ID_OBJECT_HIT packet when hitting non-actors instead of
+            just returning
+        */
+        if(!othercls.isActor())
+        {
+            mwmp::ObjectList *objectList = mwmp::Main::get().getNetworking()->getObjectList();
+            objectList->reset();
+            objectList->packetOrigin = mwmp::CLIENT_GAMEPLAY;
+            objectList->addObjectHit(victim, ptr);
+            objectList->sendObjectHit();
+            return;
+        }
+        /*
+            End of tes3mp change (major)
+        */
+        MWMechanics::CreatureStats &otherstats = othercls.getCreatureStats(victim);
+        if(otherstats.isDead()) // Can't hit dead actors
             return;
 
         if (ptr == MWMechanics::getPlayer())
@@ -602,6 +656,59 @@ namespace MWClass
                 attackWindUp, damage, false, hitPosition, false, MWMechanics::DamageSourceType::Melee);
             MWMechanics::reduceWeaponCondition(damage, false, weapon, ptr);
             MWMechanics::resistNormalWeapon(victim, ptr, weapon, damage);
+        int weapskill = ESM::Skill::HandToHand;
+        if(!weapon.isEmpty())
+            weapskill = weapon.getClass().getEquipmentSkill(weapon);
+
+        float hitchance = MWMechanics::getHitChance(ptr, victim, getSkill(ptr, weapskill));
+
+        /*
+            Start of tes3mp addition
+
+            If the attacker is a LocalPlayer or LocalActor, get their Attack to assign its
+            hit position and target
+        */
+        mwmp::Attack *localAttack = MechanicsHelper::getLocalAttack(ptr);
+
+        if (localAttack)
+        {
+            localAttack->isHit = true;
+            localAttack->success = true;
+            localAttack->hitPosition = MechanicsHelper::getPositionFromVector(hitPosition);
+            MechanicsHelper::assignAttackTarget(localAttack, victim);
+        }
+        /*
+            End of tes3mp addition
+        */
+
+        if (Misc::Rng::roll0to99() >= hitchance)
+        {
+            /*
+                Start of tes3mp addition
+
+                If this was a failed attack by the LocalPlayer or LocalActor, send a
+                packet about it
+
+                Send an ID_OBJECT_HIT about it as well
+            */
+            if (localAttack)
+            {
+                localAttack->pressed = false;
+                localAttack->success = false;
+                localAttack->shouldSend = true;
+
+                mwmp::ObjectList *objectList = mwmp::Main::get().getNetworking()->getObjectList();
+                objectList->reset();
+                objectList->packetOrigin = mwmp::CLIENT_GAMEPLAY;
+                objectList->addObjectHit(victim, ptr, *localAttack);
+                objectList->sendObjectHit();
+            }
+            /*
+                End of tes3mp addition
+            */
+
+            othercls.onHit(victim, 0.0f, false, weapon, ptr, osg::Vec3f(), false);
+            MWMechanics::reduceWeaponCondition(0.f, false, weapon, ptr);
             return;
         }
 
@@ -660,7 +767,20 @@ namespace MWClass
             damage *= store.find("fCombatKODamageMult")->mValue.getFloat();
 
         // Apply "On hit" enchanted weapons
-        MWMechanics::applyOnStrikeEnchantment(ptr, victim, weapon, hitPosition);
+
+        /*
+            Start of tes3mp change (minor)
+
+            Track whether the strike enchantment is successful for attacks by the
+            LocalPlayer or LocalActors
+        */
+        bool appliedEnchantment = MWMechanics::applyOnStrikeEnchantment(ptr, victim, weapon, hitPosition);
+
+        if (localAttack)
+            localAttack->applyWeaponEnchantment = appliedEnchantment;
+        /*
+            End of tes3mp change (minor)
+        */
 
         MWMechanics::applyElementalShields(ptr, victim);
 
@@ -700,6 +820,17 @@ namespace MWClass
         if (!attacker.isEmpty() && attacker.getClass().isActor())
         {
             MWMechanics::CreatureStats& statsAttacker = attacker.getClass().getCreatureStats(attacker);
+
+            /*
+                Start of tes3mp change (minor)
+
+                Instead of only checking whether an attacker is the LocalPlayer, also
+                check if they are a DedicatedPlayer
+
+                Additionally, if the two players are on each other's team, don't track
+                their hits
+            */
+
             // First handle the attacked actor
             if (!stats.getHitAttemptActor().isSet()
                 && (statsAttacker.getAiSequence().isInCombat(ptr) || attacker == MWMechanics::getPlayer()))
@@ -709,6 +840,24 @@ namespace MWClass
             if (!statsAttacker.getHitAttemptActor().isSet()
                 && (statsAttacker.getAiSequence().isInCombat(ptr) || attacker == MWMechanics::getPlayer()))
                 statsAttacker.setHitAttemptActor(ptr.getCellRef().getRefNum());
+            if ((stats.getHitAttemptActorId() == -1)
+                && (statsAttacker.getAiSequence().isInCombat(ptr)
+                    || attacker == MWMechanics::getPlayer()
+                    || mwmp::PlayerList::isDedicatedPlayer(attacker))
+                && !MechanicsHelper::isTeamMember(attacker, ptr))
+                stats.setHitAttemptActorId(statsAttacker.getActorId());
+
+            // Next handle the attacking actor
+            if ((statsAttacker.getHitAttemptActorId() == -1)
+                && (statsAttacker.getAiSequence().isInCombat(ptr)
+                    || attacker == MWMechanics::getPlayer()
+                    || mwmp::PlayerList::isDedicatedPlayer(attacker))
+                && !MechanicsHelper::isTeamMember(ptr, attacker))
+                statsAttacker.setHitAttemptActorId(stats.getActorId());
+
+            /*
+                End of tes3mp change (minor)
+            */
         }
 
         if (!object.empty())
@@ -742,6 +891,49 @@ namespace MWClass
             if (damage < 0.001f)
                 continue;
             hasDamage = true;
+            // 'ptr' is losing health. Play a 'hit' voiced dialog entry if not already saying
+            // something, alert the character controller, scripts, etc.
+
+            const MWWorld::ESMStore &store = MWBase::Environment::get().getWorld()->getStore();
+            const GMST& gmst = getGmst();
+
+            int chance = store.get<ESM::GameSetting>().find("iVoiceHitOdds")->mValue.getInteger();
+            if (Misc::Rng::roll0to99() < chance)
+                MWBase::Environment::get().getDialogueManager()->say(ptr, "hit");
+
+            // Check for knockdown
+            float agilityTerm = stats.getAttribute(ESM::Attribute::Agility).getModified() * gmst.fKnockDownMult->mValue.getFloat();
+            float knockdownTerm = stats.getAttribute(ESM::Attribute::Agility).getModified()
+                    * gmst.iKnockDownOddsMult->mValue.getInteger() * 0.01f + gmst.iKnockDownOddsBase->mValue.getInteger();
+
+            /*
+                Start of tes3mp change (major)
+
+                If the attacker is a DedicatedPlayer or DedicatedActor with a successful knockdown, apply the knockdown
+
+                If the attacker is neither of those, then it must be a LocalPlayer or a LocalActor, so calculate the
+                knockdown probability on our client
+
+                Default to hit recovery if no knockdown has taken place, like in regular OpenMW
+            */
+            mwmp::Attack *dedicatedAttack = MechanicsHelper::getDedicatedAttack(attacker);
+
+            if (dedicatedAttack)
+            {
+                if (dedicatedAttack->knockdown)
+                    stats.setKnockedDown(true);
+            }
+            else
+            {
+                if (ishealth && agilityTerm <= damage && knockdownTerm <= Misc::Rng::roll0to99())
+                    stats.setKnockedDown(true);
+            }
+
+            if (!stats.getKnockedDown())
+                stats.setHitRecovery(true); // Is this supposed to always occur?
+            /*
+                End of tes3mp change (major)
+            */
 
             if (stat == "health")
             {
@@ -793,10 +985,88 @@ namespace MWClass
 
             MWBase::Environment::get().getMechanicsManager()->actorKilled(ptr, attacker);
         }
+
+        /*
+            Start of tes3mp addition
+
+            If the attacker was the LocalPlayer or LocalActor, record their target and send an
+            attack packet about it
+
+            Send an ID_OBJECT_HIT about it as well
+
+            If the victim was the LocalPlayer, check whether packets should be sent about
+            their new dynamic stats and position
+
+            If the victim was a LocalActor who died, record their attacker as the killer
+        */
+        mwmp::Attack *localAttack = MechanicsHelper::getLocalAttack(attacker);
+
+        if (localAttack)
+        {
+            localAttack->pressed = false;
+            localAttack->damage = damage;
+            localAttack->knockdown = getCreatureStats(ptr).getKnockedDown();
+
+            MechanicsHelper::assignAttackTarget(localAttack, ptr);
+
+            localAttack->shouldSend = true;
+
+            mwmp::ObjectList *objectList = mwmp::Main::get().getNetworking()->getObjectList();
+            objectList->reset();
+            objectList->packetOrigin = mwmp::CLIENT_GAMEPLAY;
+            objectList->addObjectHit(ptr, attacker, *localAttack);
+            objectList->sendObjectHit();
+        }
+        
+        if (ptr == MWMechanics::getPlayer())
+        {
+            // Record the attacker as the LocalPlayer's death reason
+            if (getCreatureStats(ptr).isDead())
+            {
+                mwmp::Main::get().getLocalPlayer()->killer = MechanicsHelper::getTarget(attacker);
+            }
+
+            mwmp::Main::get().getLocalPlayer()->updateStatsDynamic(true);
+            mwmp::Main::get().getLocalPlayer()->updatePosition(true); // fix position after getting damage;
+        }
+        else if (mwmp::Main::get().getCellController()->isLocalActor(ptr))
+        {
+            if (getCreatureStats(ptr).isDead())
+            {
+                mwmp::Main::get().getCellController()->getLocalActor(ptr)->killer = MechanicsHelper::getTarget(attacker);
+            }
+        }
+        /*
+            End of tes3mp addition
+        */
     }
 
     std::unique_ptr<MWWorld::Action> Npc::activate(const MWWorld::Ptr& ptr, const MWWorld::Ptr& actor) const
     {
+        /*
+            Start of tes3mp addition
+
+            Don't display a dialogue screen for two players interacting with each other
+        */
+        if (actor == MWMechanics::getPlayer() && mwmp::PlayerList::isDedicatedPlayer(ptr))
+            return std::shared_ptr<MWWorld::Action>(new MWWorld::FailedAction(""));
+        /*
+            End of tes3mp addition
+        */
+
+        /*
+            Start of tes3mp addition
+
+            Avoid returning an ActionTalk when a non-player NPC activates another
+            non-player NPC, because it will always pop up a dialogue screen for
+            the local player
+        */
+        if (ptr != MWMechanics::getPlayer() && actor != MWMechanics::getPlayer())
+            return std::shared_ptr<MWWorld::Action>(new MWWorld::FailedAction(""));
+        /*
+            End of tes3mp addition
+        */
+
         // player got activated by another NPC
         if (ptr == MWMechanics::getPlayer())
             return std::make_unique<MWWorld::ActionTalk>(actor);

@@ -2,6 +2,16 @@
 
 #include <stdexcept>
 
+/*
+    Start of tes3mp addition
+
+    Include additional headers for multiplayer purposes
+*/
+#include <components/openmw-mp/TimedLog.hpp>
+/*
+    End of tes3mp addition
+*/
+
 #include <components/esm/defs.hpp>
 #include <components/esm3/loadench.hpp>
 #include <components/esm3/loadmgef.hpp>
@@ -71,6 +81,19 @@ namespace MWWorld
     MWMechanics::CreatureStats& Class::getCreatureStats(const Ptr& ptr) const
     {
         throw std::runtime_error("class does not have creature stats");
+        /*
+            Start of tes3mp addition
+
+            This is a common error in multiplayer, so additional logging has been added for it
+        */
+        LOG_MESSAGE_SIMPLE(TimedLog::LOG_ERROR, "Attempt at getting creatureStats for %s %i-%i which is a %s!",
+            ptr.getCellRef().getRefId().c_str(), ptr.getCellRef().getRefNum().mIndex, ptr.getCellRef().getMpNum(),
+            ptr.getClass().getTypeName().c_str());
+        /*
+            End of tes3mp addition
+        */
+
+        throw std::runtime_error ("class does not have creature stats");
     }
 
     MWMechanics::NpcStats& Class::getNpcStats(const Ptr& ptr) const
@@ -146,11 +169,39 @@ namespace MWWorld
     }
 
     bool Class::hasInventoryStore(const ConstPtr& ptr) const
+    /*
+        Start of tes3mp addition
+
+        Make it possible to check whether a class has a container store
+    */
+    bool Class::hasContainerStore(const Ptr &ptr) const
+    {
+        return false;
+    }
+    /*
+        End of tes3mp addition
+    */
+
+    bool Class::hasInventoryStore(const Ptr &ptr) const
     {
         return false;
     }
 
     bool Class::canLock(const ConstPtr& ptr) const
+    /*
+        Start of tes3mp addition
+
+        Make it possible to check whether a class can be harvested
+    */
+    bool Class::canBeHarvested(const ConstPtr& ptr) const
+    {
+        return false;
+    }
+    /*
+        End of tes3mp addition
+    */
+
+    bool Class::canLock(const ConstPtr &ptr) const
     {
         return false;
     }

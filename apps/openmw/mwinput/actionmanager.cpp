@@ -6,6 +6,20 @@
 
 #include <components/settings/values.hpp>
 
+/*
+    Start of tes3mp addition
+
+    Include additional headers for multiplayer purposes
+*/
+#include "../mwmp/Main.hpp"
+#include "../mwmp/LocalPlayer.hpp"
+#include "../mwmp/GUIController.hpp"
+/*
+    End of tes3mp addition
+*/
+
+#include "../mwbase/inputmanager.hpp"
+#include "../mwbase/statemanager.hpp"
 #include "../mwbase/environment.hpp"
 #include "../mwbase/inputmanager.hpp"
 #include "../mwbase/luamanager.hpp"
@@ -171,6 +185,19 @@ namespace MWInput
 
     void ActionManager::toggleMainMenu()
     {
+        /*
+            Start  of tes3mp addition
+
+            Don't allow the main menu to be toggled while TES3MP listboxes are open
+        */
+        if (MWBase::Environment::get().getWindowManager()->getMode() == mwmp::GUIController::GM_TES3MP_ListBox)
+        {
+            return;
+        }
+        /*
+            End of tes3mp addition
+        */
+
         if (MyGUI::InputManager::getInstance().isModalAny())
         {
             MWBase::Environment::get().getWindowManager()->exitCurrentModal();
@@ -221,12 +248,78 @@ namespace MWInput
             return;
 
         MWBase::Environment::get().getWindowManager()->pushGuiMode(MWGui::GM_Rest); // Open rest GUI
+        if (!MWBase::Environment::get().getWindowManager()->getRestEnabled() || MWBase::Environment::get().getWindowManager()->isGuiMode())
+            return;
+
+        /*
+            Start of tes3mp addition
+
+            Ignore attempts to rest if the player has not logged in on the server yet
+
+            Set LocalPlayer's isUsingBed to be able to distinguish bed use from regular rest
+            menu use
+        */
+        if (!mwmp::Main::get().getLocalPlayer()->isLoggedIn())
+            return;
+
+        mwmp::Main::get().getLocalPlayer()->isUsingBed = false;
+        /*
+            End of tes3mp addition
+        */
+
+        MWBase::Environment::get().getWindowManager()->pushGuiMode(MWGui::GM_Rest); //Open rest GUI
+    }
+
+    void ActionManager::toggleInventory()
+    {
+        if (!MWBase::Environment::get().getInputManager()->getControlSwitch("playercontrols"))
+            return;
+
+        if (MyGUI::InputManager::getInstance().isModalAny())
+            return;
+
+        if (MWBase::Environment::get().getWindowManager()->isConsoleMode())
+            return;
+
+        /*
+            Start of tes3mp addition
+
+            Ignore attempts to open inventory if the player has not logged in on the server yet
+        */
+        if (!mwmp::Main::get().getLocalPlayer()->isLoggedIn())
+            return;
+        /*
+            End of tes3mp addition
+        */
+
+        // Toggle between game mode and inventory mode
+        if(!MWBase::Environment::get().getWindowManager()->isGuiMode())
+            MWBase::Environment::get().getWindowManager()->pushGuiMode(MWGui::GM_Inventory);
+        else
+        {
+            MWGui::GuiMode mode = MWBase::Environment::get().getWindowManager()->getMode();
+            if(mode == MWGui::GM_Inventory || mode == MWGui::GM_Container)
+                MWBase::Environment::get().getWindowManager()->popGuiMode();
+        }
+
+        // .. but don't touch any other mode, except container.
     }
 
     void ActionManager::toggleConsole()
     {
         if (MyGUI::InputManager::getInstance().isModalAny())
             return;
+
+        /*
+            Start of tes3mp addition
+
+            If a player's console is disabled by the server, go no further
+        */
+        if (!mwmp::Main::get().getLocalPlayer()->consoleAllowed)
+            return;
+        /*
+            End of tes3mp addition
+        */
 
         MWBase::Environment::get().getWindowManager()->toggleConsole();
     }

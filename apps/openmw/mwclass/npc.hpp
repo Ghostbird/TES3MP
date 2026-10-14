@@ -80,6 +80,17 @@ namespace MWClass
 
         void hit(const MWWorld::Ptr& ptr, float attackStrength, float attackWindUp, int type,
             const MWWorld::Ptr& victim, const osg::Vec3f& hitPosition, bool success) const override;
+            /*
+                Start of tes3mp addition
+
+                Make it possible to check whether a class has a container store
+            */
+            virtual bool hasContainerStore(const MWWorld::Ptr &ptr) const { return true; }
+            /*
+                End of tes3mp addition
+            */
+
+            void hit(const MWWorld::Ptr& ptr, float attackStrength, int type) const override;
 
         void onHit(const MWWorld::Ptr& ptr, const std::map<std::string, float>& damages, ESM::RefId object,
             const MWWorld::Ptr& attacker, bool successful,

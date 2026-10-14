@@ -106,6 +106,20 @@ namespace MWBase
         /// Check if \a observer is potentially aware of \a ptr. Does not do a line of sight check!
         virtual bool awarenessCheck(const MWWorld::Ptr& ptr, const MWWorld::Ptr& observer, bool useCache = true) = 0;
 
+
+        /*
+            Start of tes3mp addition
+
+            Make it possible to set the number of deaths for an actor with the given refId,
+            the attackingOrSpell state of a Ptr, and to check whether an item corresponds to
+            a bound item
+        */
+        virtual void setDeaths(const std::string& refId, int number) = 0;
+        virtual void setAttackingOrSpell(const MWWorld::Ptr& ptr, bool state) const = 0;
+        /*
+            End of tes3mp addition
+        */
+
         /// Makes \a ptr fight \a target. Also shouts a combat taunt.
         virtual void startCombat(
             const MWWorld::Ptr& ptr, const MWWorld::Ptr& target, const std::set<MWWorld::Ptr>* targetAllies)

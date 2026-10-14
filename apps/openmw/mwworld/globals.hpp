@@ -67,6 +67,30 @@ namespace MWWorld
         size_t countSavedGameRecords() const;
 
         void write(ESM::ESMWriter& writer, Loading::Listener& progress) const;
+            bool readRecord (ESM::ESMReader& reader, uint32_t type);
+            ///< Records for variables that do not exist are dropped silently.
+            ///
+            /// \return Known type?
+        
+            /*
+                Start of tes3mp addition
+
+                Make it possible to add a global record from elsewhere
+            */
+            void addRecord(const ESM::Global global);
+            /*
+                End of tes3mp addition
+            */
+
+            /*
+                Start of tes3mp addition
+
+                Make it possible to check whether a global exists
+            */
+            bool hasRecord(const std::string& name);
+            /*
+                End of tes3mp addition
+            */
 
         bool readRecord(ESM::ESMReader& reader, uint32_t type);
         ///< Records for variables that do not exist are dropped silently.

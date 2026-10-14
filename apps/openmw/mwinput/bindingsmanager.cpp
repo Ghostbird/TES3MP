@@ -11,6 +11,17 @@
 #include <components/files/conversion.hpp>
 #include <components/sdlutil/sdlmappings.hpp>
 
+/*
+    Start of tes3mp addition
+
+    Include additional headers for multiplayer purposes
+*/
+#include "../mwmp/Main.hpp"
+#include "../mwmp/GUIController.hpp"
+/*
+    End of tes3mp addition
+*/
+
 #include "../mwbase/environment.hpp"
 #include "../mwbase/inputmanager.hpp"
 #include "../mwbase/windowmanager.hpp"
@@ -629,6 +640,16 @@ namespace MWInput
 
     void BindingsManager::keyPressed(const SDL_KeyboardEvent& arg)
     {
+        /*
+            Start of tes3mp addition
+
+            Pass the pressed key to the multiplayer-specific GUI controller
+        */
+        mwmp::Main::get().getGUIController()->pressedKey(arg.keysym.scancode);
+        /*
+            End of tes3mp addition
+        */
+
         mInputBinder->keyPressed(arg);
     }
 
@@ -710,6 +731,29 @@ namespace MWInput
             {
                 std::filesystem::rename(Files::pathFromUnicodeString(newFileName), mUserFile);
                 Log(Debug::Info) << "Saved input bindings: " << mUserFile;
+                if (joystickUsed && currentValue == 1.0 && actionIsActive(A_ToggleWeapon))
+                    action = A_CycleWeaponRight;
+
+                else if (joystickUsed && currentValue == 1.0 && actionIsActive(A_ToggleSpell))
+                    action = A_CycleSpellRight;
+
+                else
+                {
+                    /*
+                        Start of tes3mp addition
+
+                        Prevent players from starting attacks while in the persuasion submenu in dialogue
+                    */
+                    if (MWBase::Environment::get().getWindowManager()->containsMode(MWGui::GM_Dialogue))
+                        return;
+                    /*
+                        End of tes3mp addition
+                    */
+
+                    MWWorld::Player& player = MWBase::Environment::get().getWorld()->getPlayer();
+                    MWMechanics::DrawState_ state = player.getDrawState();
+                    player.setAttackingOrSpell(currentValue != 0 && state != MWMechanics::DrawState_Nothing);
+                }
             }
             else
             {

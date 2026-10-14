@@ -409,6 +409,19 @@ namespace MWWorld
             else
                 return mSharedExt.at(index - mSharedInt.size());
         }
+        void listIdentifier(std::vector<std::string> &list) const override;
+
+        /*
+            Start of tes3mp addition
+
+            Make it possible to override a Cell record similarly to how
+            other types of records can be overridden
+        */
+        ESM::Cell *override(const ESM::Cell &cell);
+        /*
+            End of tes3mp addition
+        */
+        ESM::Cell *insert(const ESM::Cell &cell);
 
         void listIdentifier(std::vector<ESM::RefId>& list) const override;
 
@@ -436,6 +449,23 @@ namespace MWWorld
         const ESM::Pathgrid* search(const ESM::Cell& cell) const;
         const ESM::Pathgrid* search(const MWWorld::Cell& cell) const;
         const ESM::Pathgrid* find(const ESM::Cell& cell) const;
+        /*
+            Start of tes3mp addition
+
+            Make it possible to override a Pathgrid record similarly to how
+            other types of records can be overridden
+        */
+        ESM::Pathgrid* override(const ESM::Pathgrid& pathgrid);
+        /*
+            End of tes3mp addition
+        */
+
+        const ESM::Pathgrid *search(int x, int y) const;
+        const ESM::Pathgrid *search(const std::string& name) const;
+        const ESM::Pathgrid *find(int x, int y) const;
+        const ESM::Pathgrid* find(const std::string& name) const;
+        const ESM::Pathgrid *search(const ESM::Cell &cell) const;
+        const ESM::Pathgrid *find(const ESM::Cell &cell) const;
     };
 
     template <>

@@ -223,11 +223,121 @@ namespace MWWorld
             mHasState = true;
 
             for (LiveCellRefBase* mergedRef : mMergedRefs)
+            /*
+                Start of tes3mp addition
+
+                Make it possible to clear the moves to other cells tracked for objects, allowing for
+                on-the-fly cell resets that don't cause crashes
+            */
+            void clearMovesToCells();
+            /*
+                End of tes3mp addition
+            */
+
+            void rest(double hours);
+            void recharge(float duration);
+
+            /// Make a copy of the given object and insert it into this cell.
+            /// @note If you get a linker error here, this means the given type can not be inserted into a cell.
+            /// The supported types are defined at the bottom of this file.
+            template <typename T>
+            LiveCellRefBase* insert(const LiveCellRef<T>* ref)
             {
                 if (!includeDeleted && !isAccessible(mergedRef->mData, mergedRef->mRef))
                     continue;
 
                 if (!visitor(MWWorld::Ptr(mergedRef, this)))
+            /*
+                Start of tes3mp addition
+
+                Allow the searching of objects by their reference numbers and, optionally,
+                their refIds
+            */
+            Ptr searchExact (unsigned int refNum, unsigned int mpNum, std::string refId = "", bool actorsOnly = false);
+            /*
+                End of tes3mp addition
+            */
+
+            /*
+                Start of tes3mp addition
+
+                Make it possible to get the mMergedRefs in the CellStore from elsewhere in the code
+            */
+            std::vector<LiveCellRefBase*> &getMergedRefs();
+            /*
+                End of tes3mp addition
+            */
+
+            /*
+                Start of tes3mp addition
+
+                Make it possible to get the mNPCs in the CellStore from elsewhere in the code
+            */
+            CellRefList<ESM::NPC> *getNpcs();
+            /*
+                End of tes3mp addition
+            */
+
+            /*
+                Start of tes3mp addition
+
+                Make it possible to get the mCreatures in the CellStore from elsewhere in the code
+            */
+            CellRefList<ESM::Creature> *getCreatures();
+            /*
+                End of tes3mp addition
+            */
+
+            /*
+                Start of tes3mp addition
+
+                Make it possible to get the mCreatureLists in the CellStore from elsewhere in the code
+            */
+            CellRefList<ESM::CreatureLevList> *getCreatureLists();
+            /*
+                End of tes3mp addition
+            */
+
+            /*
+                Start of tes3mp addition
+
+                Make it possible to get the mContainers in the CellStore from elsewhere in the code
+            */
+            CellRefList<ESM::Container> *getContainers();
+            /*
+                End of tes3mp addition
+            */
+
+            float getWaterLevel() const;
+
+            bool movedHere(const MWWorld::Ptr& ptr) const;
+
+            void setWaterLevel (float level);
+
+            void setFog (ESM::FogState* fog);
+            ///< \note Takes ownership of the pointer
+
+            ESM::FogState* getFog () const;
+
+            std::size_t count() const;
+            ///< Return total number of references, including deleted ones.
+
+            void load ();
+            ///< Load references from content file.
+
+            void preload ();
+            ///< Build ID list from content file.
+
+            /// Call visitor (MWWorld::Ptr) for each reference. visitor must return a bool. Returning
+            /// false will abort the iteration.
+            /// \note Prefer using forEachConst when possible.
+            /// \note Do not modify this cell (i.e. remove/add objects) during the forEach, doing this may result in unintended behaviour.
+            /// \attention This function also lists deleted (count 0) objects!
+            /// \return Iteration completed?
+            template<class Visitor>
+            bool forEach (Visitor&& visitor)
+            {
+                if (mState != State_Loaded)
                     return false;
             }
             return true;

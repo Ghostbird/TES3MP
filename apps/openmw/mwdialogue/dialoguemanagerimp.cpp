@@ -28,6 +28,19 @@
 
 #include <components/settings/values.hpp>
 
+/*
+    Start of tes3mp addition
+
+    Include additional headers for multiplayer purposes
+*/
+#include "../mwmp/Main.hpp"
+#include "../mwmp/CellController.hpp"
+#include "../mwmp/LocalPlayer.hpp"
+#include "../mwmp/LocalActor.hpp"
+/*
+    End of tes3mp addition
+*/
+
 #include "../mwbase/environment.hpp"
 #include "../mwbase/journal.hpp"
 #include "../mwbase/luamanager.hpp"
@@ -115,6 +128,21 @@ namespace MWDialogue
     }
 
     void DialogueManager::addTopicsFromText(const std::string& text)
+    /*
+        Start of tes3mp addition
+
+        Make it possible to check whether a topic is known by the player from elsewhere
+        in the code
+    */
+    bool DialogueManager::isNewTopic(const std::string& topic)
+    {
+        return (!mKnownTopics.count(topic));
+    }
+    /*
+        End of tes3mp addition
+    */
+
+    void DialogueManager::parseText (const std::string& text)
     {
         updateActorKnownTopics();
 
@@ -136,6 +164,20 @@ namespace MWDialogue
                 mCurrentDisposition = stats.getBaseDisposition();
                 mOriginalDisposition = mCurrentDisposition;
             }
+
+            /*
+                Start of tes3mp addition
+
+                Send an ID_PLAYER_TOPIC packet every time a new topic becomes known
+            */
+            if (mActorKnownTopics.count(topicId) && isNewTopic(topicId))
+                mwmp::Main::get().getLocalPlayer()->sendTopic(topicId);
+            /*
+                End of tes3mp addition
+            */
+
+            if (mActorKnownTopics.count( topicId ))
+                mKnownTopics.insert( topicId );
         }
     }
 
@@ -257,6 +299,19 @@ namespace MWDialogue
             try
             {
                 MWScript::InterpreterContext interpreterContext(&actor.getRefData().getLocals(), actor);
+
+                /*
+                    Start of tes3mp addition
+
+                    Mark this InterpreterContext as having a DIALOGUE context,
+                    so that packets sent by the Interpreter can have their
+                    origin determined by serverside scripts
+                */
+                interpreterContext.trackContextType(Interpreter::Context::DIALOGUE);
+                /*
+                    End of tes3mp addition
+                */
+
                 Interpreter::Interpreter interpreter;
                 MWScript::installOpcodes(interpreter);
                 interpreter.run(*program, interpreterContext);
@@ -654,11 +709,38 @@ namespace MWDialogue
             MWBase::WindowManager* winMgr = MWBase::Environment::get().getWindowManager();
             if (Settings::gui().mSubtitles)
                 winMgr->messageBox(info->mResponse);
+            MWBase::WindowManager *winMgr = MWBase::Environment::get().getWindowManager();
+            if (winMgr->getSubtitlesEnabled())
+            /*
+                Start of tes3mp change (minor)
+
+                Prevent subtitles for NPC sounds from being added to a currently open dialogue window,
+                which wasn't a problem in regular OpenMW because time was frozen during dialogue
+            */
+                winMgr->messageBox(info->mResponse, MWGui::ShowInDialogueMode_Never);
+            /*
+                End of tes3mp change (minor)
+            */
             if (!info->mSound.empty())
                 sndMgr->say(actor, Misc::ResourceHelpers::correctSoundPath(VFS::Path::Normalized(info->mSound)));
             if (!info->mResultScript.empty())
                 executeScript(info->mResultScript, actor);
             MWBase::Environment::get().getLuaManager()->onDialogueResponse(actor, *info, *dial);
+
+            /*
+                Start of tes3mp addition
+
+                If we are the cell authority over this actor, we need to record this new
+                sound for it
+            */
+            if (mwmp::Main::get().getCellController()->isLocalActor(actor))
+            {
+                mwmp::LocalActor *localActor = mwmp::Main::get().getCellController()->getLocalActor(actor);
+                localActor->sound = info->mSound;
+            }
+            /*
+                End of tes3mp addition
+            */
         }
         return info != nullptr;
     }
@@ -761,4 +843,32 @@ namespace MWDialogue
                 mLastTopic, actor.getClass().getName(actor));
         }
     }
+
+    /*
+        Start of tes3mp addition
+
+        Make it possible to get the caption of a voice dialogue
+    */
+    std::string DialogueManager::getVoiceCaption(const std::string& sound) const
+    {
+        const MWWorld::Store<ESM::Dialogue>& dialogues = MWBase::Environment::get().getWorld()->getStore().get<ESM::Dialogue>();
+
+        for (MWWorld::Store<ESM::Dialogue>::iterator dialogueIter = dialogues.begin(); dialogueIter != dialogues.end(); ++dialogueIter)
+        {
+            if (dialogueIter->mType == ESM::Dialogue::Voice)
+            {
+                for (ESM::Dialogue::InfoContainer::const_iterator infoIter = dialogueIter->mInfo.begin();
+                    infoIter != dialogueIter->mInfo.end(); ++infoIter)
+                {
+                    if (!infoIter->mSound.empty() && Misc::StringUtils::ciEqual(sound, infoIter->mSound))
+                        return infoIter->mResponse;
+                }
+            }
+        }
+
+        return "???";
+    }
+    /*
+        End of tes3mp addition
+    */
 }

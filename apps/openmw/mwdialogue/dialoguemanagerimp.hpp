@@ -100,6 +100,19 @@ namespace MWDialogue
         const std::vector<std::pair<std::string, int>>& getChoices() const override;
 
         bool isGoodbye() const override;
+            /*
+                Start of tes3mp addition
+
+                Make it possible to check whether a topic is known by the player from elsewhere
+                in the code
+            */
+            virtual bool isNewTopic(const std::string& topic);
+            /*
+                End of tes3mp addition
+            */
+
+            void addChoice (const std::string& text,int choice) override;
+            const std::vector<std::pair<std::string, int> >& getChoices() override;
 
         void goodbye() override;
 
@@ -135,6 +148,18 @@ namespace MWDialogue
 
         /// Removes the last added topic response for the given actor from the journal
         void clearInfoActor(const MWWorld::Ptr& actor) const override;
+            /// Removes the last added topic response for the given actor from the journal
+            void clearInfoActor(const MWWorld::Ptr & actor) const override;
+
+            /*
+                Start of tes3mp addition
+
+                Make it possible to get the caption of a voice dialogue
+            */
+            virtual std::string getVoiceCaption(const std::string& sound) const;
+            /*
+                End of tes3mp addition
+            */
     };
 }
 
