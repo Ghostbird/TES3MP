@@ -245,7 +245,7 @@ namespace MWGui
 
             Send a PlayerMiscellaneous packet with the player's new selected spell
         */
-        mwmp::Main::get().getLocalPlayer()->sendSelectedSpell(spellId);
+        mwmp::Main::get().getLocalPlayer()->sendSelectedSpell(spellId.toString());
         /*
             End of tes3mp addition
         */
@@ -267,7 +267,7 @@ namespace MWGui
 
             Send an ID_PLAYER_SPELLBOOK packet every time a player deletes one of their spells
         */
-        mwmp::Main::get().getLocalPlayer()->sendSpellChange(mSpellToDelete, mwmp::SpellbookChanges::REMOVE);
+        mwmp::Main::get().getLocalPlayer()->sendSpellChange(mSpellToDelete.toString(), mwmp::SpellbookChanges::REMOVE);
         /*
             End of tes3mp addition
         */

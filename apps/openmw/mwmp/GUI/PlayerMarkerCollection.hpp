@@ -32,7 +32,7 @@ namespace mwmp
 
         RangeType getMarkers(const ESM::CellId &cellId) const;
 
-        typedef MyGUI::delegates::CMultiDelegate0 EventHandle_Void;
+        typedef MyGUI::delegates::MultiDelegate<> EventHandle_Void;
         EventHandle_Void eventMarkersChanged;
 
         bool contains(const ESM::CustomMarker &marker);

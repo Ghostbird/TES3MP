@@ -1,6 +1,7 @@
 #include <stdexcept>
 #include <iostream>
 #include <string>
+#include <filesystem>
 
 #include <components/openmw-mp/TimedLog.hpp>
 #include <components/openmw-mp/Utils.hpp>
@@ -278,7 +279,7 @@ void Networking::connect(const std::string &ip, unsigned short port, std::vector
     std::stringstream sstr;
     sstr << TES3MP_VERSION;
     sstr << TES3MP_PROTO_VERSION;
-    std::string commitHashString = Version::getOpenmwVersion(Main::getResDir()).mCommitHash;
+    std::string commitHashString(Version::getCommitHash());
     // Remove carriage returns added to version file on Windows
     commitHashString.erase(std::remove(commitHashString.begin(), commitHashString.end(), '\r'), commitHashString.end());
     sstr << commitHashString;
@@ -358,7 +359,7 @@ void Networking::preInit(std::vector<std::string> &content, Files::Collections &
     std::vector<std::string>::const_iterator it(content.begin());
     for (int idx = 0; it != content.end(); ++it, ++idx)
     {
-        boost::filesystem::path filename(*it);
+        std::filesystem::path filename(*it);
         const Files::MultiDirCollection& col = collections.getCollection(filename.extension().string());
         if (col.doesExist(*it))
         {

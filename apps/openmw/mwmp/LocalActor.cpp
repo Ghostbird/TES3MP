@@ -76,9 +76,10 @@ void LocalActor::updateCell()
     LOG_MESSAGE_SIMPLE(TimedLog::LOG_VERBOSE, "Sending ID_ACTOR_CELL_CHANGE about %s %i-%i in cell %s to server",
                        refId.c_str(), refNum, mpNum, cell.getShortDescription().c_str());
 
-    LOG_APPEND(TimedLog::LOG_VERBOSE, "- Moved to cell %s", ptr.getCell()->getCell()->getShortDescription().c_str());
+    LOG_APPEND(TimedLog::LOG_VERBOSE, "- Moved to cell %s",
+        ptr.getCell()->getCell()->getEsm3().getShortDescription().c_str());
 
-    cell = *ptr.getCell()->getCell();
+    cell = ptr.getCell()->getCell()->getEsm3();
     position = ptr.getRefData().getPosition();
     isFollowerCellChange = false;
 
@@ -124,7 +125,7 @@ void LocalActor::updateAnimFlags(bool forceUpdate)
 
     isFlying = world->isFlying(ptr);
 
-    MWMechanics::DrawState_ currentDrawState = ptr.getClass().getCreatureStats(ptr).getDrawState();
+    const MWMechanics::DrawState currentDrawState = ptrCreatureStats.getDrawState();
 
     if (wasRunning != isRunning || wasSneaking != isSneaking ||
         wasForceJumping != isForceJumping || wasForceMoveJumping != isForceMoveJumping ||
@@ -151,7 +152,7 @@ void LocalActor::updateAnimFlags(bool forceUpdate)
 
 #undef __SETFLAG
 
-        drawState = currentDrawState;
+        drawState = static_cast<char>(currentDrawState);
 
         mwmp::Main::get().getNetworking()->getActorList()->addAnimFlagsActor(*this);
     }
@@ -219,7 +220,7 @@ void LocalActor::updateEquipment(bool forceUpdate, bool sendImmediately)
     // If we've never sent any data, autoEquip the actor just in case its inventory
     // slots have been cleared by a previous Container packet
     if (!hasSentData)
-        invStore.autoEquip(ptr);
+        invStore.autoEquip();
 
     if (forceUpdate)
         equipmentChanged = true;
@@ -232,14 +233,14 @@ void LocalActor::updateEquipment(bool forceUpdate, bool sendImmediately)
         if (it != invStore.end())
         {
             auto &cellRef = it->getCellRef();
-            if (!::Misc::StringUtils::ciEqual(cellRef.getRefId(), item.refId))
+            if (!::Misc::StringUtils::ciEqual(cellRef.getRefId().toString(), item.refId))
             {
                 equipmentChanged = true;
 
-                item.refId = cellRef.getRefId();
+                item.refId = cellRef.getRefId().toString();
                 item.charge = cellRef.getCharge();
                 item.enchantmentCharge = it->getCellRef().getEnchantmentCharge();
-                item.count = it->getRefData().getCount();
+                item.count = cellRef.getCount();
             }
         }
         else if (!item.refId.empty())
@@ -295,16 +296,18 @@ void LocalActor::sendSpellsActiveAddition(const std::string id, bool isStackingS
 
     spellsActiveChanges.activeSpells.clear();
 
-    const MWWorld::Ptr& caster = MWBase::Environment::get().getWorld()->searchPtrViaActorId(params.mCasterActorId);
+    const MWWorld::Ptr caster
+        = MWBase::Environment::get().getWorld()->searchPtrViaActorId(params.getCaster().mIndex);
 
     mwmp::ActiveSpell spell;
     spell.id = id;
     spell.isStackingSpell = isStackingSpell;
     spell.caster = MechanicsHelper::getTarget(caster);
-    spell.timestampDay = params.mTimeStamp.getDay();
-    spell.timestampHour = params.mTimeStamp.getHour();
-    spell.params.mEffects = params.mEffects;
-    spell.params.mDisplayName = params.mDisplayName;
+    const MWWorld::TimeStamp timestamp = MWBase::Environment::get().getWorld()->getTimeStamp();
+    spell.timestampDay = timestamp.getDay();
+    spell.timestampHour = timestamp.getHour();
+    spell.params.mEffects = params.getEffects();
+    spell.params.mDisplayName = params.getDisplayName();
     spellsActiveChanges.activeSpells.push_back(spell);
 
     spellsActiveChanges.action = mwmp::SpellsActiveChanges::ADD;
@@ -368,7 +371,7 @@ void LocalActor::setPtr(const MWWorld::Ptr& newPtr)
 {
     ptr = newPtr;
 
-    refId = ptr.getCellRef().getRefId();
+    refId = ptr.getCellRef().getRefId().toString();
     refNum = ptr.getCellRef().getRefNum().mIndex;
     mpNum = ptr.getCellRef().getMpNum();
 

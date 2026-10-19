@@ -118,14 +118,11 @@ add_openmw_dir (mwbase
 
 # Start of tes3mp addition
 include_directories(${RakNet_INCLUDES})
-add_openmw_dir (mwmp)
-add_openmw_dir (mwmp/GUI)
-add_openmw_dir (mwmp/processors)
-add_openmw_dir (mwmp/processors/system)
-add_openmw_dir (mwmp/processors/player)
-add_openmw_dir (mwmp/processors/actor)
-add_openmw_dir (mwmp/processors/object)
-add_openmw_dir (mwmp/processors/worldstate)
+file(GLOB_RECURSE OPENMW_MP_FILES CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/mwmp/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/mwmp/*.hpp"
+)
+list(APPEND OPENMW_FILES ${OPENMW_MP_FILES})
 # End of tes3mp addition
 
 # Main executable

@@ -94,7 +94,7 @@ namespace MWMechanics
 
                 Track the actorId corresponding to these ActiveSpells
             */
-            int mActorId;
+            int mActorId = 0;
             /*
                 End of tes3mp addition
             */

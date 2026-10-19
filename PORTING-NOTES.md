@@ -8,7 +8,7 @@
   `/tes3mp/.worktrees/rebase-artifacts`
 - CrabNet source + prebuilt RakNet: `/tes3mp/.worktrees/CrabNet`,
   `/tes3mp/.worktrees/raknet-installed` (also installed to /usr/local)
-- The server builds and links: `build/tes3mp-server`
+- Both `build/tes3mp-server` and `build/tes3mp` build and link.
 - `/root/CrabNet` and `/usr/local/{include/raknet,lib/libRakNetLibStatic.a}`
   hold the RakNet build (CrabNet is TES3MP's RakNet fork).
 
@@ -20,7 +20,7 @@ conflict markers and several silent reverts of upstream code. It was undone
 and re-done as a proper 3-way merge:
 
 - base: `7be09078b4` (OpenMW 0.47-RC3, the fork point of TES3MP 0.8.1)
-- ours: `e501e667bb` (latest OpenMW master, 2026-10-11)
+- ours: `e501e667bb` (latest OpenMW master in `../openmw`, 2026-10-14)
 - theirs: `0.8.1` (TES3MP release)
 
 On top of that, the maintainer's in-progress port (local branch `0.9`,
@@ -46,9 +46,10 @@ cmake .. -DCMAKE_CXX_COMPILER=g++-13 -DCMAKE_C_COMPILER=gcc-13 \
   -DBUILD_NIFTEST=OFF -DBUILD_NAVMESHTOOL=OFF -DBUILD_BULLETOBJECTTOOL=OFF \
   -DBUILD_DOCS=OFF -DBUILD_COMPONENTS_TESTS=OFF -DBUILD_BENCHMARKS=OFF \
   -DBUILD_OPENCS_TESTS=OFF -DBUILD_OPENMW_TESTS=OFF \
-  -DOPENMW_USE_SYSTEM_YAML_CPP=OFF -DOPENMW_USE_SYSTEM_MYGUI=OFF
-make -j4 tes3mp-server   # works
-make -j4 tes3mp          # client: work remaining, see below
+  -DOPENMW_USE_SYSTEM_YAML_CPP=OFF -DOPENMW_USE_SYSTEM_MYGUI=OFF \
+  -DRakNet_LIBRARY_DEBUG=/usr/local/lib/libRakNetLibStatic.a
+make -j4 tes3mp-server
+make -j4 tes3mp
 ```
 
 g++-13 is required (OpenMW 0.52 uses `<format>`); it was installed from
@@ -64,43 +65,27 @@ ppa:ubuntu-toolchain-r/test.
   record overriding (Store::override implementations).
 - apps/openmw-mp (server): builds, links and produces `tes3mp-server`.
   Ported: program option types (EscapePath -> MaybeQuotedPath), includes.
-- apps/openmw (client): header rebuild (world, windowmanager, messagebox,
-  store, esmstore, npcstats, spells, globals, class, worldimp), mwmp source
-  registration in CMake, chat settings, MWClass collision hooks moved to
-  insertObjectPhysics.
+- apps/openmw (client): ported the TES3MP entry points and `mwmp` sources to
+  OpenMW 0.52 APIs, including RefId-based records/cells, current movement and
+  inventory APIs, GUI ownership, settings, and the MWClass physics hooks.
+- CMake now explicitly registers all client `mwmp` sources; before this fix,
+  the client linked with unresolved TES3MP symbols.
 
-## Remaining client work (`make -j4 tes3mp`)
+## Remaining functional port work
 
-Biggest offenders (error counts include cascades):
+- A successful client link is not a full gameplay validation. The modern
+  `actors.cpp`, `character.cpp`, `combat.cpp`, and `summoning.cpp` still need
+  their TES3MP authority, movement, death, and summon synchronization hooks
+  reconciled with OpenMW's reworked mechanics APIs. `spellcasting.cpp` has only
+  a partial hook port.
+- Exercise login, character creation, movement, combat, death/resurrection,
+  cell changes, and summons against a server with game data. `ctest` currently
+  reports no configured tests in this build.
 
-- `mwmechanics/actors.cpp`, `mwmechanics/character.hpp/cpp`,
-  `mwphysics/mtphysics.hpp`, `mwphysics/actor.cpp` — Character/Actors
-  reworks (the 0.47 -> 0.52 split of Character stats/actors).
-- `mwworld/weather.cpp` — weather sync must move from int weather ids to
-  `ESM::RefId`/`MWWorld::Weather*` (the new WeatherManager API).
-- `mwscript/*extensions.cpp` — script extensions using removed APIs.
-- `mwgui/dialogue.cpp`, `containeritemmodel.cpp`, `mwclass/npc.cpp`,
-  `mwworld/worldimp.cpp`, `scene.cpp`, `mwrender/weaponanimation.cpp`.
-- `mwworld/cellstore.cpp` + `apps/openmw/mwworld/cells.cpp` (resurrected
-  from 0.8.1 — needs porting to the current CellStore design).
-- `engine.cpp` — mangled by the WIP merge; rebuild from upstream and re-apply
-  the mwmp::Main lifecycle hooks (init/postInit/frame/destroy, packet script
-  validation, GUIController cleanup).
-- `mwclass/creature.cpp` — mangled; rebuild from upstream + tes3mp hooks
-  (collision, creature stats).
+## Validation
 
-Established fix patterns:
-
-1. Structural damage from the old WIP merge (duplicated/mangled
-   declarations): rebuild the file from `git show e501e667bb:<path>` and
-   re-apply the genuine "Start of tes3mp" additions (see the 0.8.1-vs-2021
-   diff `git diff 7be09078b4 0.8.1 -- <path>` for the authoritative list).
-2. API migrations (see the maintainer's HANDOFF.md on branch 0.9):
-   `Misc::StringUtils` -> `components/misc/strings/*` (compat shim exists),
-   raw string ids -> `ESM::RefId`, `Settings::Manager::getX` still works,
-   `ESM::Cell::getShortDescription` aliased, `ENAMstruct` ->
-   `IndexedENAMstruct::mData`, `Class::CLDTstruct::mSkills` ->
-   `mMinorSkills`/`mMajorSkills`, `Potion::ALDTstruct::mAutoCalc` -> `mFlags`,
-   MWWorld::Ptr API changes, MyGUI widget override signatures.
-3. `MWBase::World::createRecord` was removed — record cloning goes through
-   `ESMStore::overrideRecord` (already implemented for all types).
+- `make -j4 tes3mp-server` — passes and links `tes3mp-server`.
+- `make -j4 tes3mp` — passes and links `tes3mp`.
+- The build emits existing third-party RakNet deprecation/shadow warnings.
+- Runtime multiplayer testing still requires a TES3MP server and game data;
+  it was not performed as part of this rebase.

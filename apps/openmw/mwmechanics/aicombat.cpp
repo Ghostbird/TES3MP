@@ -217,7 +217,6 @@ namespace MWMechanics
 
             storage.updateAttack(actor, characterController, weapon, isRangedCombat, duration);
             if (storage.mReadyToAttack) updateActorsMovement(actor, duration, storage);
-            storage.updateAttack(characterController);
 
             /*
                 Start of tes3mp addition
@@ -283,7 +282,6 @@ namespace MWMechanics
         {
             storage.stopAttack();
             stats.setAttackingOrSpell(false);
-            characterController.setAttackingOrSpell(false);
 
             /*
                 Start of tes3mp addition
@@ -766,7 +764,7 @@ namespace MWMechanics
 
                     mwmp::ActorList *actorList = mwmp::Main::get().getNetworking()->getActorList();
                     actorList->reset();
-                    actorList->cell = *actor.getCell()->getCell();
+                    actorList->cell = actor.getCell()->getCell()->getEsm3();
                     actorList->addAttackActor(actor, *localAttack);
                     actorList->sendAttackActors();
                 }

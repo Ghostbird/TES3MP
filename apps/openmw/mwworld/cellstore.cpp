@@ -509,10 +509,10 @@ namespace MWWorld
             {
                 
                 LOG_MESSAGE_SIMPLE(TimedLog::LOG_ERROR, "Storage: %s owned %s which it gave to %s which isn't %s, which should result in a crash\n",
-                    this->getCell()->getDescription().c_str(),
-                    object.getBase()->mRef.getRefId().c_str(),
-                    found->second->getCell()->getDescription().c_str(),
-                    from->getCell()->getDescription().c_str());
+                    std::string(this->getCell()->getDescription()).c_str(),
+                    object.getBase()->mRef.getRefId().toString().c_str(),
+                    std::string(found->second->getCell()->getDescription()).c_str(),
+                    std::string(from->getCell()->getDescription()).c_str());
             }
             /*
                 End of tes3mp addition
@@ -581,10 +581,10 @@ namespace MWWorld
                     Add extra debug for multiplayer purposes
                 */
                 LOG_MESSAGE_SIMPLE(TimedLog::LOG_INFO, "Storage: %s's original cell %s gives it from %s to %s\n",
-                    object.getBase()->mRef.getRefId().c_str(),
-                    originalCell->getCell()->getDescription().c_str(),
-                    this->getCell()->getDescription().c_str(),
-                    cellToMoveTo->getCell()->getDescription().c_str());
+                    object.getBase()->mRef.getRefId().toString().c_str(),
+                    std::string(originalCell->getCell()->getDescription()).c_str(),
+                    std::string(this->getCell()->getDescription()).c_str(),
+                    std::string(cellToMoveTo->getCell()->getDescription()).c_str());
                 /*
                     End of tes3mp addition
                 */
@@ -627,8 +627,8 @@ namespace MWWorld
             otherCell->mMovedHere.erase(reference.first);
         }
 
-        mMovedHere.empty();
-        mMovedToAnotherCell.empty();
+        mMovedHere.clear();
+        mMovedToAnotherCell.clear();
     }
     /*
         End of tes3mp addition
@@ -689,9 +689,9 @@ namespace MWWorld
             Warning: Don't directly use initializeLocalActors() from here because that will break any current
             cell transition that started in World::moveObject()
         */
-        if (mwmp::Main::get().getCellController()->hasLocalAuthority(*getCell()))
+        if (mwmp::Main::get().getCellController()->hasLocalAuthority(getCell()->getEsm3()))
         {
-            mwmp::Main::get().getCellController()->getCell(*getCell())->shouldInitializeActors = true;
+            mwmp::Main::get().getCellController()->getCell(getCell()->getEsm3())->shouldInitializeActors = true;
         }
         /*
             End of tes3mp addition
@@ -844,7 +844,8 @@ namespace MWWorld
             {
                 if (!mActorsOnly || ptr.getClass().isActor())
                 {
-                    if (mRefIdToFind.empty() || Misc::StringUtils::ciEqual(ptr.getCellRef().getRefId(), mRefIdToFind))
+                    if (mRefIdToFind.empty()
+                        || Misc::StringUtils::ciEqual(ptr.getCellRef().getRefId().toString(), mRefIdToFind))
                     {
                         mFound = ptr;
                         return false;
@@ -863,7 +864,8 @@ namespace MWWorld
 
         Allow the searching of objects by their reference numbers
     */
-    Ptr CellStore::searchExact (const unsigned int refNum, const unsigned int mpNum, const std::string refId, bool actorsOnly)
+    Ptr CellStore::searchExact(
+        const unsigned int refNum, const unsigned int mpNum, const std::string refId, bool actorsOnly)
     {
         // Ensure that all objects searched for have a valid reference number
         if (refNum == 0 && mpNum == 0)
@@ -882,7 +884,7 @@ namespace MWWorld
 
         Make it possible to get the mMergedRefs in the CellStore from elsewhere in the code
     */
-    std::vector<LiveCellRefBase*> &CellStore::getMergedRefs()
+    std::vector<LiveCellRefBase*>& CellStore::getMergedRefs()
     {
         return mMergedRefs;
     }
@@ -897,7 +899,7 @@ namespace MWWorld
     */
     CellRefList<ESM::NPC> *CellStore::getNpcs()
     {
-        return &mNpcs;
+        return &get<ESM::NPC>();
     }
     /*
         End of tes3mp addition
@@ -910,7 +912,7 @@ namespace MWWorld
     */
     CellRefList<ESM::Creature> *CellStore::getCreatures()
     {
-        return &mCreatures;
+        return &get<ESM::Creature>();
     }
     /*
         End of tes3mp addition
@@ -923,7 +925,7 @@ namespace MWWorld
     */
     CellRefList<ESM::CreatureLevList> *CellStore::getCreatureLists()
     {
-        return &mCreatureLists;
+        return &get<ESM::CreatureLevList>();
     }
     /*
         End of tes3mp addition
@@ -936,7 +938,7 @@ namespace MWWorld
     */
     CellRefList<ESM::Container> *CellStore::getContainers()
     {
-        return &mContainers;
+        return &get<ESM::Container>();
     }
     /*
         End of tes3mp addition

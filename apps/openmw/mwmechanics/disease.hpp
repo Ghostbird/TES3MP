@@ -98,15 +98,13 @@ namespace MWMechanics
 
                     Send an ID_PLAYER_SPELLBOOK packet every time a player gains a disease
                 */
-                mwmp::Main::get().getLocalPlayer()->sendSpellChange(it->first->mId, mwmp::SpellbookChanges::ADD);
+                if (actor == getPlayer())
+                    mwmp::Main::get().getLocalPlayer()->sendSpellChange(
+                        spell->mId.toString(), mwmp::SpellbookChanges::ADD);
                 /*
                     End of tes3mp addition
                 */
 
-                std::string msg = "sMagicContractDisease";
-                msg = MWBase::Environment::get().getWorld()->getStore().get<ESM::GameSetting>().find(msg)->mValue.getString();
-                msg = Misc::StringUtils::format(msg, spell->mName);
-                MWBase::Environment::get().getWindowManager()->messageBox(msg);
             }
         }
     }

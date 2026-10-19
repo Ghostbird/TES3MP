@@ -78,35 +78,21 @@ namespace MWDialogue
         mTopics.clear();
     }
 
-    void Journal::addEntry(const ESM::RefId& id, int index, const MWWorld::Ptr& actor)
-    /*
-        Start of tes3mp addition
-
-        Make it possible to check whether a journal entry already exists from elsewhere in the code
-    */
     bool Journal::hasEntry(const std::string& id, int index)
     {
-        std::string infoId = JournalEntry::idFromIndex(id, index);
-        for (TEntryIter i = mJournal.begin(); i != mJournal.end(); ++i)
-            if (i->mTopic == id && i->mInfoId == infoId)
-                return true;
-
-        return false;
+        const ESM::RefId topicId = ESM::RefId::stringRefId(id);
+        const ESM::RefId& infoId = JournalEntry::idFromIndex(topicId, index);
+        return std::ranges::any_of(mJournal, [&](const JournalEntry& entry) {
+            return entry.mTopic == topicId && entry.mInfoId == infoId;
+        });
     }
-    /*
-        End of tes3mp addition
-    */
 
-    /*
-        Start of tes3mp change (minor)
+    void Journal::addEntry(const ESM::RefId& id, int index, const MWWorld::Ptr& actor)
+    {
+        addEntry(id, index, actor, -1, -1, -1);
+    }
 
-        Make it possible to override current time when adding journal entries, by adding
-        optional timestamp override arguments
-    */
-    void Journal::addEntry (const std::string& id, int index, const MWWorld::Ptr& actor, int daysPassed, int month, int day)
-    /*
-        End of tes3mp change (major)
-    */
+    void Journal::addEntry(const ESM::RefId& id, int index, const MWWorld::Ptr& actor, int daysPassed, int month, int day)
     {
         // bail out if we already have heard this...
         const ESM::RefId& infoId = JournalEntry::idFromIndex(id, index);
@@ -123,6 +109,13 @@ namespace MWDialogue
 
         StampedJournalEntry entry = StampedJournalEntry::makeFromQuest(id, index, actor);
 
+        if (daysPassed != -1 && month != -1 && day != -1)
+        {
+            entry.mDay = daysPassed;
+            entry.mMonth = month;
+            entry.mDayOfMonth = day;
+        }
+
         Quest& quest = getOrStartQuest(id);
         if (quest.addEntry(entry)) // we are doing slicing on purpose here
         {
@@ -134,23 +127,6 @@ namespace MWDialogue
                     it.second.setFinished(false);
             }
         }
-        /*
-            Start of tes3mp addition
-
-            Override the entry's timestamp if provided with valid time arguments
-        */
-        if (daysPassed != -1 && month != -1 && day != -1)
-        {
-            entry.mDay = daysPassed;
-            entry.mMonth = month;
-            entry.mDayOfMonth = day;
-        }
-        /*
-            End of tes3mp addition
-        */
-
-        Quest& quest = getQuest (id);
-        quest.addEntry (entry); // we are doing slicing on purpose here
 
         // there is no need to show empty entries in journal
         if (!entry.getText().empty())
@@ -158,6 +134,11 @@ namespace MWDialogue
             mJournal.push_back(std::move(entry));
             MWBase::Environment::get().getWindowManager()->messageBox("#{sJournalEntry}");
         }
+    }
+
+    void Journal::addEntryLegacy(const ESM::RefId& id, int index, const MWWorld::Ptr& actor)
+    {
+        addEntry(id, index, actor);
     }
 
     void Journal::setJournalIndex(const ESM::RefId& id, int index)

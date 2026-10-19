@@ -24,10 +24,7 @@ float scaleDamage(float damage, const MWWorld::Ptr& attacker, const MWWorld::Ptr
 {
     const MWWorld::Ptr& player = MWMechanics::getPlayer();
 
-    static const float fDifficultyMult
-        = MWBase::Environment::get().getESMStore()->get<ESM::GameSetting>().find("fDifficultyMult")->mValue.getFloat();
-
-    const float difficultyTerm = 0.01f * Settings::game().mDifficulty;
+    int difficultySetting = Settings::game().mDifficulty;
     /*
         Start of tes3mp change (major)
 
@@ -38,9 +35,13 @@ float scaleDamage(float damage, const MWWorld::Ptr& attacker, const MWWorld::Ptr
         End of tes3mp change (major)
     */
 
-    static const float fDifficultyMult = MWBase::Environment::get().getWorld()->getStore().get<ESM::GameSetting>().find("fDifficultyMult")->mValue.getFloat();
-
-    float difficultyTerm = 0.01f * difficultySetting;
+    static const float fDifficultyMult = MWBase::Environment::get()
+                                             .getWorld()
+                                             ->getStore()
+                                             .get<ESM::GameSetting>()
+                                             .find("fDifficultyMult")
+                                             ->mValue.getFloat();
+    const float difficultyTerm = 0.01f * difficultySetting;
 
     float x = 0;
     if (victim == player)

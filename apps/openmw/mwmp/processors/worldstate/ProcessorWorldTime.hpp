@@ -3,6 +3,7 @@
 
 #include <apps/openmw/mwbase/world.hpp>
 #include <apps/openmw/mwbase/environment.hpp>
+#include <apps/openmw/mwworld/globals.hpp>
 
 #include "../WorldstateProcessor.hpp"
 
@@ -21,22 +22,22 @@ namespace mwmp
             MWBase::World *world = MWBase::Environment::get().getWorld();
 
             if (worldstate.time.hour != -1)
-                world->setGlobalFloat("gamehour", worldstate.time.hour);
+                world->setGlobalFloat(MWWorld::Globals::sGameHour, worldstate.time.hour);
 
             if (worldstate.time.day != -1)
-                world->setGlobalInt("day", worldstate.time.day);
+                world->setGlobalInt(MWWorld::Globals::sDay, worldstate.time.day);
 
             if (worldstate.time.month != -1)
-                world->setGlobalInt("month", worldstate.time.month);
+                world->setGlobalInt(MWWorld::Globals::sMonth, worldstate.time.month);
 
             if (worldstate.time.year != -1)
-                world->setGlobalInt("year", worldstate.time.year);
+                world->setGlobalInt(MWWorld::Globals::sYear, worldstate.time.year);
 
             if (worldstate.time.timeScale != -1)
-                world->setGlobalFloat("timescale", worldstate.time.timeScale);
+                world->setGlobalFloat(MWWorld::Globals::sTimeScale, worldstate.time.timeScale);
 
             if (worldstate.time.daysPassed != -1)
-                world->setGlobalInt("dayspassed", worldstate.time.daysPassed);
+                world->setGlobalInt(MWWorld::Globals::sDaysPassed, worldstate.time.daysPassed);
         }
     };
 }

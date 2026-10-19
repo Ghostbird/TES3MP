@@ -441,6 +441,14 @@ namespace MWPhysics
         mPostSimBarrier = std::make_unique<Misc::Barrier>(mNumThreads);
     }
 
+    void PhysicsTaskScheduler::setPhysicsDt(float value)
+    {
+        if (value <= 0.f)
+            return;
+        mDefaultPhysicsDt = value;
+        mPhysicsDt = value;
+    }
+
     PhysicsTaskScheduler::~PhysicsTaskScheduler()
     {
         waitForWorkers();

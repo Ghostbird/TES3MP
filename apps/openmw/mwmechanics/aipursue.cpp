@@ -83,9 +83,7 @@ namespace MWMechanics
         End of tes3mp addition
     */
 
-    actor.getClass().getCreatureStats(actor).setDrawState(DrawState_Nothing);
-
-        actor.getClass().getCreatureStats(actor).setDrawState(DrawState::Nothing);
+    actor.getClass().getCreatureStats(actor).setDrawState(DrawState::Nothing);
 
         // Set the target destination
         const osg::Vec3f dest = target.getRefData().getPosition().asVec3();
@@ -109,7 +107,9 @@ namespace MWMechanics
 
             Close the player's inventory or open container and cancel any drag and drops
         */
-        LOG_MESSAGE_SIMPLE(TimedLog::LOG_INFO, "After being pursued by %s, diedSinceArrestAttempt is now false", actor.getCellRef().getRefId().c_str());
+        LOG_MESSAGE_SIMPLE(TimedLog::LOG_INFO,
+            "After being pursued by %s, diedSinceArrestAttempt is now false",
+            actor.getCellRef().getRefId().toString().c_str());
         mwmp::Main::get().getLocalPlayer()->diedSinceArrestAttempt = false;
         mwmp::Main::get().getLocalPlayer()->closeInventoryWindows();
         /*
@@ -120,19 +120,10 @@ namespace MWMechanics
         return true;
     }
 
-        if (reached)
-        {
-            if (!MWBase::Environment::get().getWorld()->getLOS(target, actor))
-                return false;
-            MWBase::Environment::get().getWindowManager()->pushGuiMode(
-                MWGui::GM_Dialogue, actor); // Arrest player when reached
-            return true;
-        }
+    actor.getClass().getCreatureStats(actor).setMovementFlag(
+        MWMechanics::CreatureStats::Flag_Run, true); // Make NPC run
 
-        actor.getClass().getCreatureStats(actor).setMovementFlag(
-            MWMechanics::CreatureStats::Flag_Run, true); // Make NPC run
-
-        return false;
+    return false;
     }
 
     void AiPursue::writeState(ESM::AiSequence::AiSequence& sequence) const

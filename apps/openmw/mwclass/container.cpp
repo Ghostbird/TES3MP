@@ -184,8 +184,6 @@ namespace MWClass
         {
             MWBase::Environment::get().getWindowManager()->messageBox(std::string{ keyName } + " #{sKeyUsed}");
             ptr.getCellRef().unlock();
-            MWBase::Environment::get().getWindowManager ()->messageBox (keyName + " #{sKeyUsed}");
-
             /*
                 Start of tes3mp change (major)
 

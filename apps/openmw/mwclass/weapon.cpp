@@ -1,25 +1,16 @@
 #include "weapon.hpp"
 #include "../mwphysics/physicssystem.hpp"
 
+#include <components/openmw-mp/Utils.hpp>
+#include "../mwmp/Main.hpp"
+#include "../mwmp/Networking.hpp"
+#include "../mwmp/Worldstate.hpp"
+
 #include <MyGUI_TextIterator.h>
 #include <MyGUI_UString.h>
 
 #include <components/esm3/loadnpc.hpp>
 #include <components/esm3/loadweap.hpp>
-/*
-    Start of tes3mp addition
-
-    Include additional headers for multiplayer purposes
-*/
-#include <components/openmw-mp/Utils.hpp>
-#include "../mwmp/Main.hpp"
-#include "../mwmp/Networking.hpp"
-#include "../mwmp/LocalPlayer.hpp"
-/*
-    End of tes3mp addition
-*/
-
-#include <components/esm/loadweap.hpp>
 #include <components/misc/constants.hpp>
 #include <components/settings/values.hpp>
 
@@ -57,38 +48,22 @@ namespace MWClass
         {
             renderingInterface.getObjects().insertModel(ptr, model);
         }
-        // TODO: add option somewhere to enable collision for placeable objects
-
     }
 
-    /*
-        Start of tes3mp addition
-
-        Make it possible to enable collision for this object class from a packet.
-
-        Upstream split object insertion into rendering and physics, so this hook
-        lives in insertObjectPhysics where a PhysicsSystem is available.
-    */
     void Weapon::insertObjectPhysics(const MWWorld::Ptr& ptr, const std::string& model, const osg::Quat& rotation,
         MWPhysics::PhysicsSystem& physics) const
     {
-        if (!model.empty())
+        if (model.empty())
+            return;
+        auto* worldstate = mwmp::Main::get().getNetworking()->getWorldstate();
+        if (worldstate->hasPlacedObjectCollision
+            || Utils::vectorContains(worldstate->enforcedCollisionRefIds, ptr.getCellRef().getRefId()))
         {
-            mwmp::BaseWorldstate *worldstate = mwmp::Main::get().getNetworking()->getWorldstate();
-
-            if (worldstate->hasPlacedObjectCollision ||
-                Utils::vectorContains(worldstate->enforcedCollisionRefIds, ptr.getCellRef().getRefId()))
-            {
-                if (worldstate->useActorCollisionForPlacedObjects)
-                    physics.addObject(ptr, VFS::Path::toNormalized(model), rotation, MWPhysics::CollisionType_Actor);
-                else
-                    physics.addObject(ptr, VFS::Path::toNormalized(model), rotation, MWPhysics::CollisionType_World);
-            }
+            const auto collision = worldstate->useActorCollisionForPlacedObjects ? MWPhysics::CollisionType_Actor
+                                                                                 : MWPhysics::CollisionType_World;
+            physics.addObject(ptr, VFS::Path::toNormalized(model), rotation, collision);
         }
     }
-    /*
-        End of tes3mp addition
-    */
 
     VFS::Path::NormalizedView Weapon::getModel(const MWWorld::ConstPtr& ptr) const
     {
@@ -311,21 +286,6 @@ namespace MWClass
         newItem.mEnchant = enchId;
         newItem.mData.mFlags |= ESM::Weapon::Magical;
         const ESM::Weapon* record = MWBase::Environment::get().getESMStore()->insert(newItem);
-
-        /*
-            Start of tes3mp addition
-
-            Send the newly created record to the server and expect it to be
-            returned with a server-set id
-        */
-        unsigned int quantity = mwmp::Main::get().getLocalPlayer()->lastEnchantmentQuantity;
-
-        mwmp::Main::get().getNetworking()->getWorldstate()->sendWeaponRecord(&newItem, ref->mBase->mId, quantity);
-        /*
-            End of tes3mp addition
-        */
-
-        const ESM::Weapon *record = MWBase::Environment::get().getWorld()->createRecord (newItem);
         return record->mId;
     }
 

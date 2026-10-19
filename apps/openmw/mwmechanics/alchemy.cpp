@@ -301,18 +301,17 @@ void MWMechanics::Alchemy::removeIngredients()
         {
             iter->getContainerStore()->remove(*iter, 1);
 
-            if (iter->getCellRef().getCount() < 1)
             /*
                 Start of tes3mp addition
 
                 Store this item removal for later sending to avoid packet spam
             */
-            mwmp::Main::get().getLocalPlayer()->storeItemRemoval(iter->getCellRef().getRefId(), 1);
+            mwmp::Main::get().getLocalPlayer()->storeItemRemoval(iter->getCellRef().getRefId().toString(), 1);
             /*
                 End of tes3mp addition
             */
 
-            if (iter->getRefData().getCount()<1)
+            if (iter->getCellRef().getCount() < 1)
                 *iter = MWWorld::Ptr();
         }
 

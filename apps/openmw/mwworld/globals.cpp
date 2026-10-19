@@ -114,7 +114,7 @@ namespace MWWorld
     */
     void Globals::addRecord(const ESM::Global global)
     {
-        mVariables.insert(std::make_pair(Misc::StringUtils::lowerCase(global.mId), global));
+        mVariables.insert(std::make_pair(global.mId, global));
     }
     /*
         End of tes3mp addition
@@ -127,7 +127,7 @@ namespace MWWorld
     */
     bool Globals::hasRecord(const std::string& name)
     {
-        return (mVariables.find(name) != mVariables.end());
+        return mVariables.find(ESM::RefId::stringRefId(name)) != mVariables.end();
     }
     /*
         End of tes3mp addition

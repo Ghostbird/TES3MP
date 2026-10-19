@@ -93,18 +93,6 @@ namespace MWMechanics
 
         int getDerivedDisposition(const MWWorld::Ptr& ptr, bool clamp = true) override;
         ///< Calculate the diposition of an NPC toward the player.
-            /*
-                Start of tes3mp addition
-
-                Make it possible to set the number of deaths for an actor with the given refId
-            */
-            virtual void setDeaths(const std::string& refId, int number);
-            /*
-                End of tes3mp addition
-            */
-
-            void getPersuasionDispositionChange(const MWWorld::Ptr& npc, PersuasionType type, bool& success, float& tempChange, float& permChange) override;
-            ///< Perform a persuasion action on NPC
 
         int countDeaths(const ESM::RefId& id) const override;
         ///< Return the number of deaths for actors with the given ID.
@@ -202,20 +190,12 @@ namespace MWMechanics
 
         void clear() override;
 
+        void setDeaths(const std::string& refId, int number) override;
+
         void resurrect(const MWWorld::Ptr& ptr) override;
 
         bool isCastingSpell(const MWWorld::Ptr& ptr) const override;
-            /*
-                Start of tes3mp addition
-
-                Make it possible to set the attackingOrSpell state from elsewhere in the code
-            */
-            virtual void setAttackingOrSpell(const MWWorld::Ptr &ptr, bool state) const override;
-            /*
-                End of tes3mp addition
-            */
-
-            void castSpell(const MWWorld::Ptr& ptr, const std::string spellId, bool manualSpell=false) override;
+        void setAttackingOrSpell(const MWWorld::Ptr& ptr, bool state) const override;
 
         bool isReadyToBlock(const MWWorld::Ptr& ptr) const override;
         /// Is \a ptr casting spell or using weapon now?
@@ -241,18 +221,7 @@ namespace MWMechanics
         bool isItemStolenFrom(const ESM::RefId& itemid, const MWWorld::Ptr& ptr) override;
 
         bool isBoundItem(const MWWorld::Ptr& item) override;
-            /*
-                Start of tes3mp addition
-
-                Make it possible to check if an itemId corresponds to a bound item
-            */
-            virtual bool isBoundItem(std::string itemId);
-            /*
-                End of tes3mp addition
-            */
-
-            /// @return is \a ptr allowed to take/use \a target or is it a crime?
-            bool isAllowedToUse (const MWWorld::Ptr& ptr, const MWWorld::Ptr& target, MWWorld::Ptr& victim) override;
+        bool isBoundItem(const std::string& itemId) override;
 
         /// @return is \a ptr allowed to take/use \a target or is it a crime?
         bool isAllowedToUse(const MWWorld::Ptr& ptr, const MWWorld::Ptr& target, MWWorld::Ptr& victim) override;

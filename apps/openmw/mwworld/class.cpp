@@ -80,20 +80,19 @@ namespace MWWorld
 
     MWMechanics::CreatureStats& Class::getCreatureStats(const Ptr& ptr) const
     {
-        throw std::runtime_error("class does not have creature stats");
         /*
             Start of tes3mp addition
 
             This is a common error in multiplayer, so additional logging has been added for it
         */
         LOG_MESSAGE_SIMPLE(TimedLog::LOG_ERROR, "Attempt at getting creatureStats for %s %i-%i which is a %s!",
-            ptr.getCellRef().getRefId().c_str(), ptr.getCellRef().getRefNum().mIndex, ptr.getCellRef().getMpNum(),
-            ptr.getClass().getTypeName().c_str());
+            ptr.getCellRef().getRefId().toString().c_str(), ptr.getCellRef().getRefNum().mIndex,
+            ptr.getCellRef().getMpNum(), std::to_string(ptr.getType()).c_str());
         /*
             End of tes3mp addition
         */
 
-        throw std::runtime_error ("class does not have creature stats");
+        throw std::runtime_error("class does not have creature stats");
     }
 
     MWMechanics::NpcStats& Class::getNpcStats(const Ptr& ptr) const
@@ -168,40 +167,27 @@ namespace MWWorld
         throw std::runtime_error("class does not have an inventory store");
     }
 
-    bool Class::hasInventoryStore(const ConstPtr& ptr) const
-    /*
-        Start of tes3mp addition
-
-        Make it possible to check whether a class has a container store
-    */
-    bool Class::hasContainerStore(const Ptr &ptr) const
+    bool Class::hasContainerStore(const Ptr& ptr) const
     {
         return false;
     }
-    /*
-        End of tes3mp addition
-    */
 
-    bool Class::hasInventoryStore(const Ptr &ptr) const
+    bool Class::hasInventoryStore(const ConstPtr& ptr) const
+    {
+        return false;
+    }
+
+    bool Class::hasInventoryStore(const Ptr& ptr) const
+    {
+        return false;
+    }
+
+    bool Class::canBeHarvested(const ConstPtr& ptr) const
     {
         return false;
     }
 
     bool Class::canLock(const ConstPtr& ptr) const
-    /*
-        Start of tes3mp addition
-
-        Make it possible to check whether a class can be harvested
-    */
-    bool Class::canBeHarvested(const ConstPtr& ptr) const
-    {
-        return false;
-    }
-    /*
-        End of tes3mp addition
-    */
-
-    bool Class::canLock(const ConstPtr &ptr) const
     {
         return false;
     }

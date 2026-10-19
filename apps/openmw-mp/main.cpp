@@ -1,4 +1,6 @@
 #include <iostream>
+#include <fstream>
+#include <filesystem>
 
 #include <boost/filesystem/fstream.hpp>
 #include <boost/program_options.hpp>
@@ -155,7 +157,7 @@ int main(int argc, char *argv[])
 
     auto variables = launchOptions(argc, argv, cfgMgr);
 
-    breakpad(boost::filesystem::path(cfgMgr.getLogPath()).string());
+    breakpad(cfgMgr.getLogPath().string());
 
     loadSettings(mgr, cfgMgr);
 
@@ -176,14 +178,14 @@ int main(int argc, char *argv[])
     std::ostream oldcout(cout_rdbuf);
     std::ostream oldcerr(cerr_rdbuf);
 
-    boost::filesystem::ofstream logfile;
+    std::ofstream logfile;
 
     if (!variables["no-logs"].as<bool>())
     {
         // Redirect cout and cerr to tes3mp server log
 
-        logfile.open(boost::filesystem::path(
-                cfgMgr.getLogPath() / "/tes3mp-server-" += TimedLog::getFilenameTimestamp() += ".log"));
+        logfile.open(cfgMgr.getLogPath()
+            / ("tes3mp-server-" + TimedLog::getFilenameTimestamp() + ".log"));
 
         coutsb.open(Tee(logfile, oldcout));
         cerrsb.open(Tee(logfile, oldcerr));

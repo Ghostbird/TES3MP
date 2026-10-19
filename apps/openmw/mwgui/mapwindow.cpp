@@ -27,9 +27,6 @@
     End of tes3mp addition
 */
 
-#include <components/esm/globalmap.hpp>
-#include <components/esm/esmwriter.hpp>
-#include <components/settings/settings.hpp>
 #include <components/myguiplatform/myguitexture.hpp>
 #include <components/settings/values.hpp>
 
@@ -409,7 +406,6 @@ namespace MWGui
         redraw();
     }
 
-    void LocalMapBase::setActiveCell(const MWWorld::Cell& cell)
     /*
         Start of tes3mp addition
 
@@ -438,7 +434,7 @@ namespace MWGui
         End of tes3mp addition
     */
 
-    void LocalMapBase::setActiveCell(const int x, const int y, bool interior)
+    void LocalMapBase::setActiveCell(const MWWorld::Cell& cell)
     {
         if (&cell == mActiveCell)
             return; // don't do anything if we're still in the same cell

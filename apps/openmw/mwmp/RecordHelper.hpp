@@ -46,7 +46,7 @@ namespace RecordHelper
     {
         MWBase::World *world = MWBase::Environment::get().getWorld();
 
-        return world->createRecord(record);
+        return world->getModifiableStore().overrideRecord(record);
     }
 
     template<class RecordType>
@@ -54,6 +54,13 @@ namespace RecordHelper
     {
         MWBase::World *world = MWBase::Environment::get().getWorld();
 
+        return world->getStore().get<RecordType>().search(ESM::RefId::stringRefId(id));
+    }
+
+    template<class RecordType>
+    bool doesRecordIdExist(const ESM::RefId& id)
+    {
+        MWBase::World *world = MWBase::Environment::get().getWorld();
         return world->getStore().get<RecordType>().search(id);
     }
 

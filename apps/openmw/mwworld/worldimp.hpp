@@ -270,6 +270,7 @@ namespace MWWorld
         Player& getPlayer() override;
         MWWorld::Ptr getPlayerPtr() override;
         MWWorld::ConstPtr getPlayerConstPtr() const override;
+        MWWorld::Ptr searchPtrViaActorId(int actorId) override;
             /*
                 Start of tes3mp addition
 

@@ -264,7 +264,6 @@ namespace MWGui
             try
             {
                 ConsoleInterpreterContext interpreterContext(*this, mPtr);
-                ConsoleInterpreterContext interpreterContext (*this, mPtr);
 
                 /*
                     Start of tes3mp addition
@@ -843,15 +842,13 @@ namespace MWGui
                     Display the selected object's refNum and mpNum alongside its refId in the
                     title of the console window, for easier debugging of almost everything
                 */
-                setTitle("#{sConsoleTitle} (" + object.getCellRef().getRefId() + ", " +
-                    std::to_string(object.getCellRef().getRefNum().mIndex) + "-" +
-                    std::to_string(object.getCellRef().getMpNum()) + ")");
+                mPtr = object;
                 /*
                     End of tes3mp change (major)
                 */
-                mPtr = object;
-            // User clicked on an object. Restore focus to the console command line.
-            MWBase::Environment::get().getWindowManager()->setKeyFocusWidget(mCommandLine);
+                // User clicked on an object. Restore focus to the console command line.
+                MWBase::Environment::get().getWindowManager()->setKeyFocusWidget(mCommandLine);
+        }
         }
         else
             mPtr = MWWorld::Ptr();
@@ -864,7 +861,9 @@ namespace MWGui
         if (!mConsoleMode.empty())
             title = mConsoleMode + " " + title;
         if (!mPtr.isEmpty())
-            title.append(" (" + mPtr.getCellRef().getRefId().toDebugString() + ")");
+            title.append(" (" + mPtr.getCellRef().getRefId().toString() + ", "
+                + std::to_string(mPtr.getCellRef().getRefNum().mIndex) + "-"
+                + std::to_string(mPtr.getCellRef().getMpNum()) + ")");
         setTitle(title);
     }
 

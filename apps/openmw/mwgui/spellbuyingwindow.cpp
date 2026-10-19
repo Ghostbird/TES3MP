@@ -199,19 +199,17 @@ namespace MWGui
 
         spells.add(spell->second);
         player.getClass().getContainerStore(player).remove(MWWorld::ContainerStore::sGoldId, price);
-        spells.add (mSpellsWidgetMap.find(_sender)->second);
 
         /*
             Start of tes3mp addition
 
             Send an ID_PLAYER_SPELLBOOK packet every time a player buys a spell
         */
-        mwmp::Main::get().getLocalPlayer()->sendSpellChange(mSpellsWidgetMap.find(_sender)->second, mwmp::SpellbookChanges::ADD);
+        mwmp::Main::get().getLocalPlayer()->sendSpellChange(spell->second.toString(), mwmp::SpellbookChanges::ADD);
         /*
             End of tes3mp addition
         */
 
-        player.getClass().getContainerStore(player).remove(MWWorld::ContainerStore::sGoldId, price, player);
 
         // add gold to NPC trading gold pool
         MWMechanics::CreatureStats& npcStats = mPtr.getClass().getCreatureStats(mPtr);

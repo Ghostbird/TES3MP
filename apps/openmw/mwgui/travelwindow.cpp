@@ -239,10 +239,6 @@ namespace MWGui
                                               ->mValue.getFloat();
             int hours = static_cast<int>(d / fTravelTimeMult);
             MWBase::Environment::get().getMechanicsManager()->rest(hours, true);
-            MWBase::Environment::get().getWorld()->advanceTime(hours);
-            float d = (osg::Vec3f(pos.pos[0], pos.pos[1], 0) - osg::Vec3f(playerPos.pos[0], playerPos.pos[1], 0)).length();
-            int hours = static_cast<int>(d /MWBase::Environment::get().getWorld()->getStore().get<ESM::GameSetting>().find("fTravelTimeMult")->mValue.getFloat());
-            MWBase::Environment::get().getMechanicsManager()->rest(hours, true);
 
             /*
                 Start of tes3mp change (major)

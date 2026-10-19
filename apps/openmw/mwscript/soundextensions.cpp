@@ -6,6 +6,7 @@
     Include additional headers for multiplayer purposes
 */
 #include "../mwmp/Main.hpp"
+#include "../mwmp/LocalPlayer.hpp"
 #include "../mwmp/Networking.hpp"
 #include "../mwmp/ObjectList.hpp"
 #include "../mwmp/ScriptController.hpp"
@@ -79,34 +80,20 @@ namespace MWScript
                 const VFS::Path::Normalized music(runtime.getStringLiteral(runtime[0].mInteger));
                 runtime.pop();
 
+                if (mwmp::Main::get().getLocalPlayer()->isLoggedIn())
+                {
+                    mwmp::ObjectList* objectList = mwmp::Main::get().getNetworking()->getObjectList();
+                    objectList->reset();
+                    objectList->packetOrigin
+                        = ScriptController::getPacketOriginFromContextType(runtime.getContext().getContextType());
+                    objectList->originClientScript = runtime.getContext().getCurrentScriptName();
+                    objectList->addMusicPlay(music.value());
+                    objectList->sendMusicPlay();
+                }
+
                 MWBase::Environment::get().getSoundManager()->streamMusic(
                     Misc::ResourceHelpers::correctMusicPath(music), MWSound::MusicType::MWScript);
             }
-            public:
-
-                void execute (Interpreter::Runtime& runtime) override
-                {
-                    std::string sound = runtime.getStringLiteral (runtime[0].mInteger);
-                    runtime.pop();
-
-                    /*
-                        Start of tes3mp addition
-
-                        Send an ID_MUSIC_PLAY packet every time new music is streamed through
-                        a script
-                    */
-                    mwmp::ObjectList *objectList = mwmp::Main::get().getNetworking()->getObjectList();
-                    objectList->reset();
-                    objectList->packetOrigin = ScriptController::getPacketOriginFromContextType(runtime.getContext().getContextType());
-                    objectList->originClientScript = runtime.getContext().getCurrentScriptName();
-                    objectList->addMusicPlay(sound);
-                    objectList->sendMusicPlay();
-                    /*
-                        End of tes3mp addition
-                    */
-
-                    MWBase::Environment::get().getSoundManager()->streamMusic (sound);
-                }
         };
 
         class OpPlaySound : public Interpreter::Opcode0

@@ -131,6 +131,14 @@ namespace MWPhysics
         mTaskScheduler = std::make_unique<PhysicsTaskScheduler>(mPhysicsDt, mCollisionWorld.get());
     }
 
+    void PhysicsSystem::setPhysicsFramerate(float physicsFramerate)
+    {
+        if (physicsFramerate <= 0.f || physicsFramerate >= 100.f)
+            return;
+        mPhysicsDt = 1.f / physicsFramerate;
+        mTaskScheduler->setPhysicsDt(mPhysicsDt);
+    }
+
     PhysicsSystem::~PhysicsSystem()
     {
         mResourceSystem->removeResourceManager(mShapeManager.get());
@@ -191,116 +199,6 @@ namespace MWPhysics
     RayCastingResult PhysicsSystem::castRay(const osg::Vec3f& from, const osg::Vec3f& to,
         const std::vector<MWWorld::ConstPtr>& ignore, const std::vector<MWWorld::Ptr>& targets, int mask,
         int group) const
-    /*
-        Start of tes3mp addition
-
-        Make it possible to set the physics framerate from elsewhere
-    */
-    void PhysicsSystem::setPhysicsFramerate(float physFramerate)
-    {
-        if (physFramerate > 0 && physFramerate < 100)
-        {
-            mPhysicsDt = 1.f / physFramerate;
-            mTaskScheduler->mPhysicsDt = mPhysicsDt;
-
-            std::cerr << "Warning: physics framerate was overridden (a new value is " << physFramerate << ")." << std::endl;
-        }
-        else
-        {
-            std::cerr << "Warning: attempted to override physics framerate with new value of " << physFramerate <<
-                ", but it was outside accepted values." << std::endl;
-        }
-    }
-    /*
-        End of tes3mp addition
-    */
-
-    std::pair<MWWorld::Ptr, osg::Vec3f> PhysicsSystem::getHitContact(const MWWorld::ConstPtr& actor,
-                                                                     const osg::Vec3f &origin,
-                                                                     const osg::Quat &orient,
-                                                                     float queryDistance, std::vector<MWWorld::Ptr>& targets)
-    {
-        // First of all, try to hit where you aim to
-        int hitmask = CollisionType_World | CollisionType_Door | CollisionType_HeightMap | CollisionType_Actor;
-        RayCastingResult result = castRay(origin, origin + (orient * osg::Vec3f(0.0f, queryDistance, 0.0f)), actor, targets, hitmask, CollisionType_Actor);
-
-        if (result.mHit)
-        {
-            reportCollision(Misc::Convert::toBullet(result.mHitPos), Misc::Convert::toBullet(result.mHitNormal));
-            return std::make_pair(result.mHitObject, result.mHitPos);
-        }
-
-        // Use cone shape as fallback
-        const MWWorld::Store<ESM::GameSetting> &store = MWBase::Environment::get().getWorld()->getStore().get<ESM::GameSetting>();
-
-        btConeShape shape (osg::DegreesToRadians(store.find("fCombatAngleXY")->mValue.getFloat()/2.0f), queryDistance);
-        shape.setLocalScaling(btVector3(1, 1, osg::DegreesToRadians(store.find("fCombatAngleZ")->mValue.getFloat()/2.0f) /
-                                              shape.getRadius()));
-
-        // The shape origin is its center, so we have to move it forward by half the length. The
-        // real origin will be provided to getFilteredContact to find the closest.
-        osg::Vec3f center = origin + (orient * osg::Vec3f(0.0f, queryDistance*0.5f, 0.0f));
-
-        btCollisionObject object;
-        object.setCollisionShape(&shape);
-        object.setWorldTransform(btTransform(Misc::Convert::toBullet(orient), Misc::Convert::toBullet(center)));
-
-        const btCollisionObject* me = nullptr;
-        std::vector<const btCollisionObject*> targetCollisionObjects;
-
-        const Actor* physactor = getActor(actor);
-        if (physactor)
-            me = physactor->getCollisionObject();
-
-        if (!targets.empty())
-        {
-            for (MWWorld::Ptr& target : targets)
-            {
-                const Actor* targetActor = getActor(target);
-                if (targetActor)
-                    targetCollisionObjects.push_back(targetActor->getCollisionObject());
-            }
-        }
-
-        DeepestNotMeContactTestResultCallback resultCallback(me, targetCollisionObjects, Misc::Convert::toBullet(origin));
-        resultCallback.m_collisionFilterGroup = CollisionType_Actor;
-        resultCallback.m_collisionFilterMask = CollisionType_World | CollisionType_Door | CollisionType_HeightMap | CollisionType_Actor;
-        mTaskScheduler->contactTest(&object, resultCallback);
-
-        if (resultCallback.mObject)
-        {
-            PtrHolder* holder = static_cast<PtrHolder*>(resultCallback.mObject->getUserPointer());
-            if (holder)
-            {
-                reportCollision(resultCallback.mContactPoint, resultCallback.mContactNormal);
-                return std::make_pair(holder->getPtr(), Misc::Convert::toOsg(resultCallback.mContactPoint));
-            }
-        }
-        return std::make_pair(MWWorld::Ptr(), osg::Vec3f());
-    }
-
-    float PhysicsSystem::getHitDistance(const osg::Vec3f &point, const MWWorld::ConstPtr &target) const
-    {
-        btCollisionObject* targetCollisionObj = nullptr;
-        const Actor* actor = getActor(target);
-        if (actor)
-            targetCollisionObj = actor->getCollisionObject();
-        if (!targetCollisionObj)
-            return 0.f;
-
-        btTransform rayFrom;
-        rayFrom.setIdentity();
-        rayFrom.setOrigin(Misc::Convert::toBullet(point));
-
-        auto hitpoint = mTaskScheduler->getHitPoint(rayFrom, targetCollisionObj);
-        if (hitpoint)
-            return (point - Misc::Convert::toOsg(*hitpoint)).length();
-
-        // didn't hit the target. this could happen if point is already inside the collision box
-        return 0.f;
-    }
-
-    RayCastingResult PhysicsSystem::castRay(const osg::Vec3f &from, const osg::Vec3f &to, const MWWorld::ConstPtr& ignore, std::vector<MWWorld::Ptr> targets, int mask, int group) const
     {
         if (from == to)
         {

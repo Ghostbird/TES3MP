@@ -45,7 +45,7 @@ void Cell::updateLocal(bool forceUpdate)
     ActorList *actorList = mwmp::Main::get().getNetworking()->getActorList();
     actorList->reset();
 
-    actorList->cell = *store->getCell();
+    actorList->cell = store->getCell()->getEsm3();
 
     for (auto it = localActors.begin(); it != localActors.end();)
     {
@@ -81,7 +81,7 @@ void Cell::updateLocal(bool forceUpdate)
         {
             if (actor->getPtr().getRefData().isEnabled())
             {
-                if (actor->getPtr().getRefData().isDeleted())
+                if (actor->getPtr().getBase()->isDeleted())
                 {
                     std::string mapIndex = it->first;
                     LOG_APPEND(TimedLog::LOG_VERBOSE, "- Deleting LocalActor %s whose reference has been deleted",
@@ -391,9 +391,9 @@ void Cell::readCast(ActorList& actorList)
 
             // Set the correct drawState here if we've somehow we've missed a previous
             // AnimFlags packet
-            if (actor->drawState != MWMechanics::DrawState_::DrawState_Spell)
+            if (static_cast<MWMechanics::DrawState>(actor->drawState) != MWMechanics::DrawState::Spell)
             {
-                actor->drawState = MWMechanics::DrawState_::DrawState_Spell;
+                actor->drawState = static_cast<char>(MWMechanics::DrawState::Spell);
                 actor->setAnimFlags();
             }
 
@@ -483,7 +483,7 @@ void Cell::initializeLocalActor(const MWWorld::Ptr& ptr)
     LOG_APPEND(TimedLog::LOG_VERBOSE, "- Initializing LocalActor %s in %s", mapIndex.c_str(), getShortDescription().c_str());
 
     LocalActor *actor = new LocalActor();
-    actor->cell = *store->getCell();
+    actor->cell = store->getCell()->getEsm3();
     actor->setPtr(ptr);
 
     localActors[mapIndex] = actor;
@@ -507,7 +507,7 @@ void Cell::initializeLocalActors()
             if (ptr.getCellRef().getRefNum().mIndex == 0 && ptr.getCellRef().getMpNum() == 0) continue;
 
             // If this Ptr is disabled or deleted, ignore it
-            if (!ptr.getRefData().isEnabled() || ptr.getRefData().isDeleted()) continue;
+            if (!ptr.getRefData().isEnabled() || ptr.getBase()->isDeleted()) continue;
 
             std::string mapIndex = Main::get().getCellController()->generateMapIndex(ptr);
 
@@ -526,7 +526,7 @@ void Cell::initializeDedicatedActor(const MWWorld::Ptr& ptr)
     LOG_APPEND(TimedLog::LOG_VERBOSE, "- Initializing DedicatedActor %s in %s", mapIndex.c_str(), getShortDescription().c_str());
 
     DedicatedActor *actor = new DedicatedActor();
-    actor->cell = *store->getCell();
+    actor->cell = store->getCell()->getEsm3();
     actor->setPtr(ptr);
 
     dedicatedActors[mapIndex] = actor;
@@ -547,7 +547,7 @@ void Cell::initializeDedicatedActors(ActorList& actorList)
         {
             MWWorld::Ptr ptrFound = store->searchExact(baseActor.refNum, baseActor.mpNum, baseActor.refId, true);
 
-            if (!ptrFound) continue;
+            if (ptrFound.isEmpty()) continue;
 
             initializeDedicatedActor(ptrFound);
         }
@@ -614,5 +614,5 @@ MWWorld::CellStore *Cell::getCellStore()
 
 std::string Cell::getShortDescription()
 {
-    return store->getCell()->getShortDescription();
+    return store->getCell()->getEsm3().getShortDescription();
 }

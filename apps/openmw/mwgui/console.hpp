@@ -47,9 +47,6 @@ namespace MWGui
                 End of tes3mp addition
             */
 
-            MyGUI::EditBox* mCommandLine;
-            MyGUI::EditBox* mHistory;
-
         // History of previous entered commands
         StringList mCommandHistory;
         StringList::iterator mCurrent;

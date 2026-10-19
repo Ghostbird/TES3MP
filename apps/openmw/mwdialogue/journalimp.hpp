@@ -34,30 +34,13 @@ namespace MWDialogue
         ///< Add a journal entry.
         /// @param actor Used as context for replacing of escape sequences (%name, etc).
 
+        bool hasEntry(const std::string& id, int index) override;
+        void addEntry(const ESM::RefId& id, int index, const MWWorld::Ptr& actor, int daysPassed, int month, int day)
+            override;
+        void addEntryLegacy(const ESM::RefId& id, int index, const MWWorld::Ptr& actor) override;
+
         void setJournalIndex(const ESM::RefId& id, int index) override;
         ///< Set the journal index without adding an entry.
-            /*
-                Start of tes3mp addition
-
-                Make it possible to check whether a journal entry already exists from elsewhere in the code
-            */
-            virtual bool hasEntry(const std::string& id, int index);
-            /*
-                End of tes3mp addition
-            */
-
-            /*
-                Start of tes3mp change (minor)
-
-                Make it possible to override current time when adding journal entries, by adding
-                optional timestamp override arguments
-            */
-            void addEntry (const std::string& id, int index, const MWWorld::Ptr& actor, int daysPassed = -1, int month = -1, int day = -1) override;
-            ///< Add a journal entry.
-            /// @param actor Used as context for replacing of escape sequences (%name, etc).
-            /*
-                End of tes3mp change (major)
-            */
 
         int getJournalIndex(const ESM::RefId& id) const override;
         ///< Get the journal index.

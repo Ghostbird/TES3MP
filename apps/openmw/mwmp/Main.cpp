@@ -1,7 +1,9 @@
 #include <cstdlib>
+#include <filesystem>
 
 #include <components/openmw-mp/Utils.hpp>
 #include <components/openmw-mp/TimedLog.hpp>
+#include <components/settings/parser.hpp>
 #include <components/openmw-mp/Version.hpp>
 
 #include <components/esm3/esmwriter.hpp>
@@ -61,22 +63,24 @@ std::string Main::getResDir()
 std::string loadSettings(Settings::Manager& settings)
 {
     Files::ConfigurationManager mCfgMgr;
-    // Create the settings manager and load default settings file
+    Settings::SettingsFileParser parser;
+
+    // Add TES3MP defaults and user settings to the current OpenMW settings.
     const std::string localdefault = (mCfgMgr.getLocalPath() / "tes3mp-client-default.cfg").string();
     const std::string globaldefault = (mCfgMgr.getGlobalPath() / "tes3mp-client-default.cfg").string();
 
     // prefer local
-    if (boost::filesystem::exists(localdefault))
-        settings.loadDefault(localdefault, false);
-    else if (boost::filesystem::exists(globaldefault))
-        settings.loadDefault(globaldefault, false);
+    if (std::filesystem::exists(localdefault))
+        parser.loadSettingsFile(localdefault, Settings::Manager::mDefaultSettings, false, true);
+    else if (std::filesystem::exists(globaldefault))
+        parser.loadSettingsFile(globaldefault, Settings::Manager::mDefaultSettings, false, true);
     else
         throw std::runtime_error ("No default settings file found! Make sure the file \"tes3mp-client-default.cfg\" was properly installed.");
 
     // load user settings if they exist
     const std::string settingspath = (mCfgMgr.getUserConfigPath() / "tes3mp-client.cfg").string();
-    if (boost::filesystem::exists(settingspath))
-        settings.loadUser(settingspath);
+    if (std::filesystem::exists(settingspath))
+        parser.loadSettingsFile(settingspath, Settings::Manager::mUserSettings, false, true);
 
     return settingspath;
 }
@@ -119,7 +123,7 @@ void Main::configure(const boost::program_options::variables_map &variables)
 {
     Main::address = variables["connect"].as<std::string>();
     Main::serverPassword = variables["password"].as<std::string>();
-    resourceDir = variables["resources"].as<Files::EscapePath>().mPath.string();
+    resourceDir = variables["resources"].as<Files::MaybeQuotedPath>().string();
 }
 
 bool Main::init(std::vector<std::string> &content, Files::Collections &collections)

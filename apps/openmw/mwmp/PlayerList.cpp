@@ -71,9 +71,7 @@ DedicatedPlayer *PlayerList::getPlayer(const MWWorld::Ptr &ptr)
         if (playerEntry.second == nullptr || playerEntry.second->getPtr().mRef == nullptr)
             continue;
         
-        std::string refId = ptr.getCellRef().getRefId();
-        
-        if (playerEntry.second->getPtr().getCellRef().getRefId() == refId)
+        if (playerEntry.second->getPtr().getCellRef().getRefId() == ptr.getCellRef().getRefId())
             return playerEntry.second;
     }
 
@@ -156,7 +154,7 @@ void PlayerList::clearHitAttemptActorId(int actorId)
 
         MWMechanics::CreatureStats &playerCreatureStats = playerEntry.second->getPtr().getClass().getCreatureStats(playerEntry.second->getPtr());
 
-        if (playerCreatureStats.getHitAttemptActorId() == actorId)
-            playerCreatureStats.setHitAttemptActorId(-1);
+        if (playerCreatureStats.getHitAttemptActor().mIndex == static_cast<uint32_t>(actorId))
+            playerCreatureStats.setHitAttemptActor(ESM::RefNum{});
     }
 }

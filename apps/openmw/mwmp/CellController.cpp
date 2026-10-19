@@ -7,6 +7,7 @@
 
 #include "../mwworld/containerstore.hpp"
 #include "../mwworld/class.hpp"
+#include "../mwworld/worldmodel.hpp"
 #include "../mwworld/worldimp.hpp"
 
 #include "CellController.hpp"
@@ -39,7 +40,8 @@ void CellController::updateLocal(bool forceUpdate)
     {
         mwmp::Cell *mpCell = it->second;
 
-        if (mpCell->getCellStore() == nullptr || mpCell->getCellStore()->getCell() == nullptr || !world->isCellActive(*mpCell->getCellStore()->getCell()))
+        if (mpCell->getCellStore() == nullptr || mpCell->getCellStore()->getCell() == nullptr
+            || !world->isCellActive(mpCell->getCellStore()->getCell()->getEsm3()))
         {
             mpCell->uninitializeLocalActors();
             mpCell->uninitializeDedicatedActors();
@@ -69,11 +71,6 @@ void CellController::updateLocal(bool forceUpdate)
                 mpCell->initializeLocalActors();
             }
         }
-    }
-    // Otherwise, disable the DetourNavigator for advanced pathfinding for the time being
-    else
-    {
-        world->getNavigator()->setUpdatesEnabled(false);
     }
 }
 
@@ -430,12 +427,13 @@ MWWorld::CellStore *CellController::getCellStore(const ESM::Cell& cell)
     MWWorld::CellStore *cellStore;
 
     if (cell.isExterior())
-        cellStore = MWBase::Environment::get().getWorld()->getExterior(cell.mData.mX, cell.mData.mY);
+        cellStore = &MWBase::Environment::get().getWorldModel()->getExterior(
+            ESM::ExteriorCellLocation(cell.mData.mX, cell.mData.mY, ESM::Cell::sDefaultWorldspaceId));
     else
     {
         try
         {
-            cellStore = MWBase::Environment::get().getWorld()->getInterior(cell.mName);
+            cellStore = &MWBase::Environment::get().getWorldModel()->getInterior(cell.mName);
         }
         catch (std::exception&)
         {

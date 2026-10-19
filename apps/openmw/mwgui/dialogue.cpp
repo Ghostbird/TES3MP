@@ -744,22 +744,18 @@ namespace MWGui
 
             auto t = std::make_unique<Topic>(keyword);
             mKeywordSearch.seed(translationStorage.topicKeyword(keyword), topicId);
-            t->eventTopicActivated += MyGUI::newDelegate(this, &DialogueWindow::onTopicActivated);
-            mTopicLinks[topicId] = std::move(t);
-            Topic* t = new Topic(keyword);
             /*
                 Start of tes3mp change (major)
 
                 Instead of running DialogueWindow::onSelectListItem() when clicking a highlighted topic, run
                 onSendDialoguePacket() so the server can approve or deny a dialogue choice
             */
-            //t->eventTopicActivated += MyGUI::newDelegate(this, &DialogueWindow::onTopicActivated);
             t->eventTopicActivated += MyGUI::newDelegate(this, &DialogueWindow::sendDialogueChoicePacket);
             /*
                 End of tes3mp change (major)
             */
             
-            mTopicLinks[topicId] = t;
+            mTopicLinks[topicId] = std::move(t);
 
             if (keyword == focusedTopic)
                 mControllerFocus = mTopicsList->getItemCount() - 1;

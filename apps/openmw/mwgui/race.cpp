@@ -121,15 +121,10 @@ namespace MWGui
             Disable back button here so players can't change their names after logging into
             their server accounts
         */
-        backButton->setVisible(false);
+        mBackButton->setVisible(false);
         /*
             End of tes3mp change (major)
         */
-
-        MyGUI::Button* okButton;
-        getWidget(okButton, "OKButton");
-        okButton->setCaption(MWBase::Environment::get().getWindowManager()->getGameSettingString("sOK", ""));
-        okButton->eventMouseButtonClick += MyGUI::newDelegate(this, &RaceDialog::onOkClicked);
 
         updateRaces();
         updateSkills();

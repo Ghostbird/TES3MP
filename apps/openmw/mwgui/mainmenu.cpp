@@ -324,8 +324,6 @@ namespace MWGui
             Saving the game should still be possible, as long as it's clear that the resulting
             save is singleplayer-only; this will prevent players from completely losing their
             characters and houses on servers if those servers ever go down
-        */
-
         //buttons.emplace_back("newgame");
 
         if (state == MWBase::StateManager::State_Running

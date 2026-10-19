@@ -2,10 +2,12 @@
 #define OPENMW_GUICONTROLLER_HPP
 
 #include <components/settings/settings.hpp>
+#include <memory>
 
 #include "apps/openmw/mwgui/mode.hpp"
 
 #include <components/openmw-mp/Base/BasePlayer.hpp>
+#include <memory>
 #include "GUI/PlayerMarkerCollection.hpp"
 #include "GUI/TextInputDialog.hpp"
 
@@ -73,8 +75,8 @@ namespace mwmp
         int keyChatMode;
 
         long id;
-        TextInputDialog *mInputBox;
-        GUIDialogList *mListBox;
+        std::unique_ptr<TextInputDialog> mInputBox;
+        std::unique_ptr<GUIDialogList> mListBox;
         void onInputBoxDone(MWGui::WindowBase* parWindow);
         //MyGUI::Widget *oldFocusWidget, *currentFocusWidget;
     };

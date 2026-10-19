@@ -19,7 +19,6 @@
 */
 
 #include <components/esm3/loaddoor.hpp>
-#include <components/esm/doorstate.hpp>
 #include <components/sceneutil/positionattitudetransform.hpp>
 
 #include "../mwbase/environment.hpp"
@@ -175,7 +174,6 @@ namespace MWClass
                 MWBase::Environment::get().getWindowManager()->messageBox(std::string{ keyName } + " #{sKeyUsed}");
             ptr.getCellRef().unlock(); // Call the function here. because that makes sense.
             if(actor == MWMechanics::getPlayer())
-                MWBase::Environment::get().getWindowManager()->messageBox(keyName + " #{sKeyUsed}");
 
             /*
                 Start of tes3mp change (major)
@@ -263,23 +261,14 @@ namespace MWClass
                 }
                 else
                 {
+                    ESM::RefId destinationCell = ptr.getCellRef().getDestCell();
+                    const std::string destinationCellName = destinationCell.toString();
+                    const auto& overrides = mwmp::Main::get().getNetworking()->getWorldstate()->destinationOverrides;
+                    if (const auto override = overrides.find(destinationCellName); override != overrides.end())
+                        destinationCell = ESM::RefId::stringRefId(override->second);
+
                     std::unique_ptr<MWWorld::Action> action = std::make_unique<MWWorld::ActionTeleport>(
-                        ptr.getCellRef().getDestCell(), ptr.getCellRef().getDoorDest(), true);
-                    /*
-                        Start of tes3mp change (major)
-
-                        If there is a destination override in the mwmp::Worldstate for this door's original
-                        destination, use it
-                    */
-                    std::string destinationCell = ptr.getCellRef().getDestCell();
-
-                    if (mwmp::Main::get().getNetworking()->getWorldstate()->destinationOverrides.count(destinationCell) != 0)
-                        destinationCell = mwmp::Main::get().getNetworking()->getWorldstate()->destinationOverrides[destinationCell];
-
-                    std::shared_ptr<MWWorld::Action> action(new MWWorld::ActionTeleport(destinationCell, ptr.getCellRef().getDoorDest(), true));
-                    /*
-                        End of tes3mp change (major)
-                    */
+                        destinationCell, ptr.getCellRef().getDoorDest(), true);
 
                     action->setSound(openSound);
                     return action;
@@ -389,36 +378,17 @@ namespace MWClass
 
     std::string Door::getDestination(const MWWorld::LiveCellRef<ESM::Door>& door)
     {
-        const MWWorld::CellStore* cell = MWBase::Environment::get().getWorldModel()->findCell(door.mRef.getDestCell());
+        ESM::RefId destinationCell = door.mRef.getDestCell();
+        const std::string destinationCellId = destinationCell.toString();
+        const auto& overrides = mwmp::Main::get().getNetworking()->getWorldstate()->destinationOverrides;
+        if (const auto override = overrides.find(destinationCellId); override != overrides.end())
+            destinationCell = ESM::RefId::stringRefId(override->second);
+
+        const MWWorld::CellStore* cell = MWBase::Environment::get().getWorldModel()->findCell(destinationCell);
         if (cell == nullptr)
             return {};
         std::string_view dest = MWBase::Environment::get().getWorld()->getCellName(cell);
         return "#{sCell=" + std::string{ dest } + "}";
-        const MWWorld::ESMStore& store = MWBase::Environment::get().getWorld()->getStore();
-
-        std::string dest = door.mRef.getDestCell();
-        if (dest.empty())
-        {
-            // door leads to exterior, use cell name (if any), otherwise translated region name
-            int x, y;
-            auto world = MWBase::Environment::get().getWorld();
-            world->positionToIndex(door.mRef.getDoorDest().pos[0], door.mRef.getDoorDest().pos[1], x, y);
-            const ESM::Cell* cell = world->getStore().get<ESM::Cell>().search(x, y);
-            dest = world->getCellName(cell);
-        }
-        /*
-            Start of tes3mp addition
-
-            If there is a destination override in the mwmp::Worldstate for this door's original
-            destination, use it
-        */
-        else if (mwmp::Main::get().getNetworking()->getWorldstate()->destinationOverrides.count(dest) != 0)
-            dest = mwmp::Main::get().getNetworking()->getWorldstate()->destinationOverrides[dest];
-        /*
-            End of tes3mp addition
-        */
-
-        return "#{sCell=" + dest + "}";
     }
 
     MWWorld::Ptr Door::copyToCellImpl(const MWWorld::ConstPtr& ptr, MWWorld::CellStore& cell) const

@@ -25,6 +25,7 @@ namespace MWInput
         void rest();
         void quickLoad();
         void quickSave();
+        void toggleInventory();
 
         void quickKey(int index);
 

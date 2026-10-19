@@ -143,13 +143,13 @@ namespace MWGui
         mwmp::ObjectList *objectList = mwmp::Main::get().getNetworking()->getObjectList();
         objectList->reset();
         objectList->packetOrigin = mwmp::CLIENT_GAMEPLAY;
-        objectList->cell = *mPtr.getCell()->getCell();
+        objectList->cell = mPtr.getCell()->getCell()->getEsm3();
         objectList->action = mwmp::BaseObjectList::REMOVE;
         objectList->containerSubAction = mwmp::BaseObjectList::DRAG;
 
         mwmp::BaseObject baseObject = objectList->getBaseObjectFromPtr(mPtr);
         MWWorld::Ptr itemPtr = mModel->getItem(mSelectedItem).mBase;
-        objectList->addContainerItem(baseObject, itemPtr, itemPtr.getRefData().getCount(), count);
+        objectList->addContainerItem(baseObject, itemPtr, itemPtr.getCellRef().getCount(), count);
         objectList->addBaseObject(baseObject);
         objectList->sendContainer();
         /*
@@ -200,7 +200,7 @@ namespace MWGui
             mwmp::ObjectList *objectList = mwmp::Main::get().getNetworking()->getObjectList();
             objectList->reset();
             objectList->packetOrigin = mwmp::CLIENT_GAMEPLAY;
-            objectList->cell = *mPtr.getCell()->getCell();
+            objectList->cell = mPtr.getCell()->getCell()->getEsm3();
             objectList->action = mwmp::BaseObjectList::ADD;
             objectList->containerSubAction = mwmp::BaseObjectList::DROP;
 
@@ -299,17 +299,6 @@ namespace MWGui
     {
         mItemTransfer->addTarget(*mItemView);
     }
-        /*
-            Start of tes3mp addition
-
-            Mark this container as closed for multiplayer logic purposes
-        */
-        mwmp::Main::get().getLocalPlayer()->clearCurrentContainer();
-        /*
-            End of tes3mp addition
-        */
-
-        WindowBase::onClose();
 
     void ContainerWindow::onClose()
     {
@@ -325,6 +314,7 @@ namespace MWGui
         resetReference();
 
         mItemTransfer->removeTarget(*mItemView);
+        mwmp::Main::get().getLocalPlayer()->clearCurrentContainer();
     }
 
     void ContainerWindow::onCloseButtonClicked(MyGUI::Widget* /*sender*/)
@@ -350,7 +340,7 @@ namespace MWGui
         mwmp::ObjectList *objectList = mwmp::Main::get().getNetworking()->getObjectList();
         objectList->reset();
         objectList->packetOrigin = mwmp::CLIENT_GAMEPLAY;
-        objectList->cell = *mPtr.getCell()->getCell();
+        objectList->cell = mPtr.getCell()->getCell()->getEsm3();
         objectList->action = mwmp::BaseObjectList::REMOVE;
         objectList->containerSubAction = mwmp::BaseObjectList::TAKE_ALL;
         mwmp::BaseObject baseObject = objectList->getBaseObjectFromPtr(mPtr);
@@ -360,7 +350,7 @@ namespace MWGui
             const ItemStack& item = mModel->getItem(i);
 
             // Trigger crimes related to the attempted taking of these items, if applicable
-            if (!onTakeItem(item, item.mCount))
+            if (!mModel->onTakeItem(item.mBase, static_cast<int>(item.mCount)))
                 break;
 
             objectList->addContainerItem(baseObject, item, item.mCount, item.mCount);

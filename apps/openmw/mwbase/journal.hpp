@@ -71,8 +71,8 @@ namespace MWBase
             Make it possible to override current time when adding journal entries, by adding
             optional timestamp override arguments
         */
-        virtual void addEntry(const ESM::RefId& id, int index, const MWWorld::Ptr& actor, int daysPassed = -1,
-            int month = -1, int day = -1)
+        virtual void addEntry(
+            const ESM::RefId& id, int index, const MWWorld::Ptr& actor, int daysPassed, int month, int day)
             = 0;
         ///< Add a journal entry.
         /// @param actor Used as context for replacing of escape sequences (%name, etc).

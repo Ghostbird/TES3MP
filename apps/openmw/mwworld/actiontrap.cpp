@@ -67,7 +67,8 @@ namespace MWWorld
         
         ESM::Position pos;
 
-        if (actor == MWBase::Environment::get().getWorld()->getPlayerPtr() && MWBase::Environment::get().getWorld()->getDistanceToFacedObject() > trapRange)
+        if (actor == MWBase::Environment::get().getWorld()->getPlayerPtr()
+            && MWBase::Environment::get().getWorld()->getDistanceToFocusObject() > trapRange)
             pos = mTrapSource.getRefData().getPosition();
         else
             pos = actor.getRefData().getPosition();

@@ -94,7 +94,8 @@ bool parseOptions(int argc, char** argv, OMW::Engine& engine, Files::Configurati
 
         Print the multiplayer version before the regular one.
     */
-    Log(Debug::Info) << Utils::getVersionInfo("TES3MP client", TES3MP_VERSION, Version::getCommitHash(), TES3MP_PROTO_VERSION);
+    Log(Debug::Info) << Utils::getVersionInfo(
+        "TES3MP client", TES3MP_VERSION, std::string(Version::getCommitHash()), TES3MP_PROTO_VERSION);
     /*
         End of tes3mp addition
     */

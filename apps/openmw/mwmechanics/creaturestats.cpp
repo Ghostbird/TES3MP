@@ -19,9 +19,6 @@
     End of tes3mp addition
 */
 
-#include <components/esm/creaturestats.hpp>
-#include <components/esm/esmreader.hpp>
-#include <components/esm/esmwriter.hpp>
 
 #include "../mwworld/class.hpp"
 #include "../mwworld/esmstore.hpp"
@@ -699,7 +696,6 @@ namespace MWMechanics
             mAwarenessTimer = 0.f;
             mAwarenessRoll = -1;
         }
-        return mSummonGraveyard;
     }
 
     /*
@@ -710,30 +706,19 @@ namespace MWMechanics
     */
     void CreatureStats::setSummonedCreatureActorId(std::string refId, int actorId)
     {
-        for (std::map<ESM::SummonKey, int>::iterator it = mSummonedCreatures.begin(); it != mSummonedCreatures.end(); )
+        for (auto it = mSummonedCreatures.begin(); it != mSummonedCreatures.end(); ++it)
         {
-            if (Misc::StringUtils::ciEqual(getSummonedCreature(it->first.mEffectId), refId) && it->second == -1)
+            if (Misc::StringUtils::ciEqual(getSummonedCreature(it->first).toString(), refId)
+                && !it->second.isSet())
             {
-                it->second = actorId;
+                it->second = { static_cast<uint32_t>(actorId), -1 };
                 break;
             }
-            else
-                ++it;
         }
     }
     /*
         End of tes3mp addition
     */
-
-    std::map<std::string, CorprusStats> &CreatureStats::getCorprusSpells()
-    {
-        return mCorprusSpells;
-    }
-
-    void CreatureStats::addCorprusSpell(const std::string& sourceId, CorprusStats& stats)
-    {
-        mCorprusSpells[sourceId] = stats;
-    }
 
     int CreatureStats::getAwarenessRoll()
     {

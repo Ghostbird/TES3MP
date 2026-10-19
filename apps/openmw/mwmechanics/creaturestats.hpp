@@ -83,6 +83,8 @@ namespace MWMechanics
 
     private:
         std::multimap<ESM::RefId, ESM::RefNum> mSummonedCreatures; // <Effect, Actor>
+        std::map<std::string, CorprusStats> mCorprusSpells;
+        int mActorId = 0;
 
         float mAwarenessTimer = 0.f;
         int mAwarenessRoll = -1;
@@ -243,6 +245,9 @@ namespace MWMechanics
 
         std::multimap<ESM::RefId, ESM::RefNum>& getSummonedCreatureMap(); // <Effect, summoned creature>
 
+        int getActorId() const { return mActorId; }
+        void setActorId(int actorId) { mActorId = actorId; }
+
          /*
             Start of tes3mp addition
 
@@ -250,6 +255,10 @@ namespace MWMechanics
             initializing them after syncing them across players
          */
         void setSummonedCreatureActorId(std::string refId, int actorId);
+
+        std::map<std::string, CorprusStats>& getCorprusSpells() { return mCorprusSpells; }
+        void addCorprusSpell(const std::string& sourceId, const CorprusStats& stats) { mCorprusSpells[sourceId] = stats; }
+        void removeCorprusSpell(const std::string& sourceId) { mCorprusSpells.erase(sourceId); }
         /*
             End of tes3mp addition
         */

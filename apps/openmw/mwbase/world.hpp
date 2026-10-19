@@ -236,6 +236,8 @@ namespace MWBase
         ///< Return a pointer to a liveCellRef with the given name.
         /// \param activeOnly do non search inactive cells.
 
+        virtual MWWorld::Ptr searchPtrViaActorId(int actorId) = 0;
+
 
         /*
             Start of tes3mp addition

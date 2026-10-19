@@ -25,16 +25,8 @@
 #include <components/terrain/terraingrid.hpp>
 #include <components/vfs/pathutil.hpp>
 
-/*
-    Start of tes3mp addition
-
-    Include additional headers for multiplayer purposes
-*/
 #include "../mwmp/Main.hpp"
 #include "../mwmp/LocalPlayer.hpp"
-/*
-    End of tes3mp addition
-*/
 
 #include "../mwbase/environment.hpp"
 #include "../mwbase/luamanager.hpp"
@@ -381,19 +373,6 @@ namespace MWWorld
         ListAndResetObjectsVisitor visitor;
 
         cell->forEach(visitor, true); // Include objects being teleported by Lua
-        /*
-            Start of tes3mp addition
-
-            Set a const pointer to the iterator's ESM::Cell here, because
-            (*iter)->getCell() can become invalid later down
-        */
-        const ESM::Cell* cell = (*iter)->getCell();
-        /*
-            End of tes3mp addition
-        */
-
-        (*iter)->forEach(visitor);
-        const auto world = MWBase::Environment::get().getWorld();
         for (const auto& ptr : visitor.mObjects)
         {
             if (const auto object = mPhysics->getObject(ptr))
@@ -446,18 +425,8 @@ namespace MWWorld
         // Clean up any effects that may have been spawned while unloading all cells
         if (mActiveCells.empty())
             mRendering.notifyWorldSpaceChanged();
-        MWBase::Environment::get().getSoundManager()->stopSound (*iter);
-        mActiveCells.erase(*iter);
 
-        /*
-            Start of tes3mp addition
-
-            Store a cell unload for the LocalPlayer
-        */
-        mwmp::Main::get().getLocalPlayer()->storeCellState(*cell, mwmp::CellState::UNLOAD);
-        /*
-            End of tes3mp addition
-        */
+        mwmp::Main::get().getLocalPlayer()->storeCellState(cell->getCell()->getEsm3(), mwmp::CellState::UNLOAD);
     }
 
     void Scene::loadCell(CellStore& cell, Loading::Listener* loadingListener, bool respawn, const osg::Vec3f& position,
@@ -555,22 +524,6 @@ namespace MWWorld
             {
                 mNavigator.addWater(
                     osg::Vec2i(cellX, cellY), std::numeric_limits<int>::max(), waterLevel, navigatorUpdateGuard);
-                navigator->update(player.getRefData().getPosition().asVec3());
-
-                if (!cell->isExterior() && !(cell->getCell()->mData.mFlags & ESM::Cell::QuasiEx))
-                {
-                    mRendering.configureAmbient(cell->getCell());
-                }
-
-                /*
-                    Start of tes3mp addition
-
-                    Store a cell load for the LocalPlayer
-                */
-                mwmp::Main::get().getLocalPlayer()->storeCellState(*cell->getCell(), mwmp::CellState::LOAD);
-                /*
-                    End of tes3mp addition
-                */
             }
         }
         else
@@ -580,6 +533,7 @@ namespace MWWorld
             mRendering.configureAmbient(cellVariant);
 
         mPreloader->notifyLoaded(&cell);
+        mwmp::Main::get().getLocalPlayer()->storeCellState(cell.getCell()->getEsm3(), mwmp::CellState::LOAD);
     }
 
     void Scene::clear()
@@ -745,23 +699,6 @@ namespace MWWorld
 
         CellStore& current = mWorld.getWorldModel().getExterior(playerCellIndex);
         MWBase::Environment::get().getWindowManager()->changeCell(&current);
-        /*
-            Start of tes3mp addition
-
-            Send an ID_PLAYER_CELL_STATE packet with all cell states stored in LocalPlayer
-            and then clear them, but only if the player is logged in on the server
-        */
-        if (mwmp::Main::get().getLocalPlayer()->isLoggedIn())
-        {
-            mwmp::Main::get().getLocalPlayer()->sendCellStates();
-            mwmp::Main::get().getLocalPlayer()->clearCellStates();
-        }
-        /*
-            End of tes3mp addition
-        */
-
-        CellStore* current = MWBase::Environment::get().getWorld()->getExterior(playerCellX, playerCellY);
-        MWBase::Environment::get().getWindowManager()->changeCell(current);
 
         if (changeEvent)
             mCellChanged = true;
@@ -950,6 +887,13 @@ namespace MWWorld
         mWorld.adjustSky();
 
         mLastPlayerPos = player.getRefData().getPosition().asVec3();
+
+        mwmp::LocalPlayer* localPlayer = mwmp::Main::get().getLocalPlayer();
+        if (localPlayer->isLoggedIn())
+        {
+            localPlayer->sendCellStates();
+            localPlayer->clearCellStates();
+        }
     }
 
     Scene::Scene(MWWorld::World& world, MWRender::RenderingManager& rendering, MWPhysics::PhysicsSystem* physics,
@@ -1042,21 +986,6 @@ namespace MWWorld
         loadCell(cell, loadingListener, changeEvent, position.asVec3(), navigatorUpdateGuard.get());
 
         navigatorUpdateGuard.reset();
-
-        /*
-            Start of tes3mp addition
-
-            Send an ID_PLAYER_CELL_STATE packet with all cell states stored in LocalPlayer
-            and then clear them, but only if the player is logged in on the server
-        */
-        if (mwmp::Main::get().getLocalPlayer()->isLoggedIn())
-        {
-            mwmp::Main::get().getLocalPlayer()->sendCellStates();
-            mwmp::Main::get().getLocalPlayer()->clearCellStates();
-        }
-        /*
-            End of tes3mp addition
-        */
 
         changePlayerCell(cell, position, adjustPlayerPos);
 

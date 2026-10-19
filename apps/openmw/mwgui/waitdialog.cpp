@@ -163,6 +163,10 @@ namespace MWGui
             mProgressBar.setVisible(false);
         }
 
+        MWBase::World* world = MWBase::Environment::get().getWorld();
+        const int canRest = world->canRest();
+        mwmp::LocalPlayer* localPlayer = mwmp::Main::get().getLocalPlayer();
+
         if (!MWBase::Environment::get().getWindowManager()->getRestEnabled())
         {
             MWBase::Environment::get().getWindowManager()->popGuiMode();
@@ -172,14 +176,13 @@ namespace MWGui
 
             Prevent resting and waiting if they have been disabled by the server for the local player
         */
-        else if (canRest == MWBase::World::Rest_Allowed && !mwmp::Main::get().getLocalPlayer()->wildernessRestAllowed &&
-            !mwmp::Main::get().getLocalPlayer()->isUsingBed)
+        else if ((canRest & MWBase::World::Rest_CanSleep) && !localPlayer->wildernessRestAllowed
+            && !localPlayer->isUsingBed)
         {
             MWBase::Environment::get().getWindowManager()->messageBox("You are not allowed to rest without a bed.");
             MWBase::Environment::get().getWindowManager()->popGuiMode();
         }
-        else if (canRest == MWBase::World::Rest_OnlyWaiting && !mwmp::Main::get().getLocalPlayer()->waitAllowed &&
-            !mwmp::Main::get().getLocalPlayer()->isUsingBed)
+        else if (!localPlayer->waitAllowed && !localPlayer->isUsingBed)
         {
             MWBase::Environment::get().getWindowManager()->messageBox("You are not allowed to wait.");
             MWBase::Environment::get().getWindowManager()->popGuiMode();
@@ -221,20 +224,6 @@ namespace MWGui
 
     void WaitDialog::startWaiting(int hoursToWait)
     {
-        if (Settings::saves().mAutosave) // autosaves when enabled
-        /*
-            Start of tes3mp change (major)
-
-            It should not be possible to autosave the game in multiplayer, so it has been disabled
-        */
-        /*
-        if(Settings::Manager::getBool("autosave","Saves")) //autosaves when enabled
-            MWBase::Environment::get().getStateManager()->quickSave("Autosave");
-        */
-        /*
-            End of tes3mp change (major)
-        */
-
         MWBase::World* world = MWBase::Environment::get().getWorld();
         MWBase::Environment::get().getWindowManager()->fadeScreenOut(0.2f);
         mFadeTimeRemaining = 0.4f;

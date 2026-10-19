@@ -1,22 +1,12 @@
 #include <components/debug/debuglog.hpp>
 
-/*
-    Start of tes3mp addition
-
-    Include additional headers for multiplayer purposes
-*/
-#include <components/openmw-mp/TimedLog.hpp>
-#include "../mwbase/windowmanager.hpp"
 #include "../mwmp/Main.hpp"
 #include "../mwmp/Networking.hpp"
 #include "../mwmp/LocalPlayer.hpp"
 #include "../mwmp/PlayerList.hpp"
 #include "../mwmp/ObjectList.hpp"
-#include "../mwmp/CellController.hpp"
+#include "../mwmp/ActorList.hpp"
 #include "../mwmp/ScriptController.hpp"
-/*
-    End of tes3mp addition
-*/
 
 #include <components/sceneutil/positionattitudetransform.hpp>
 
@@ -32,6 +22,7 @@
 
 #include "../mwbase/environment.hpp"
 #include "../mwbase/luamanager.hpp"
+#include "../mwbase/windowmanager.hpp"
 #include "../mwbase/world.hpp"
 
 #include "../mwworld/cellstore.hpp"
@@ -51,6 +42,29 @@ namespace MWScript
 {
     namespace Transformation
     {
+        void sendPlacedObjectToServer(const MWWorld::Ptr& ptr, Interpreter::Runtime& runtime)
+        {
+            if (!mwmp::Main::get().getLocalPlayer()->isLoggedIn())
+                return;
+
+            mwmp::ObjectList* objectList = mwmp::Main::get().getNetworking()->getObjectList();
+            objectList->reset();
+            objectList->packetOrigin
+                = ScriptController::getPacketOriginFromContextType(runtime.getContext().getContextType());
+            objectList->originClientScript = runtime.getContext().getCurrentScriptName();
+            if (ptr.getClass().isActor())
+            {
+                objectList->addObjectSpawn(ptr);
+                objectList->sendObjectSpawn();
+            }
+            else
+            {
+                objectList->addObjectPlace(ptr);
+                objectList->sendObjectPlace();
+            }
+            MWBase::Environment::get().getWorld()->deleteObject(ptr);
+        }
+
         void moveStandingActors(const MWWorld::Ptr& ptr, const osg::Vec3f& diff)
         {
             std::vector<MWWorld::Ptr> actors;
@@ -137,53 +151,34 @@ namespace MWScript
                 Interpreter::Type_Float scale = runtime[0].mFloat;
                 runtime.pop();
 
-                MWBase::Environment::get().getWorld()->scaleObject(ptr, scale);
-            }
-                    /*
-                        Start of tes3mp addition
-
-                        Prevent players from changing their own scale
-
-                        Send an ID_OBJECT_SCALE every time an object's scale is changed through a script
-                    */
+                if (mwmp::Main::get().getLocalPlayer()->isLoggedIn())
+                {
                     if (ptr == MWMechanics::getPlayer())
                     {
-                        MWBase::Environment::get().getWindowManager()->
-                            messageBox("You can't change your own scale in multiplayer. Only the server can.");
+                        MWBase::Environment::get().getWindowManager()->messageBox(
+                            "You can't change your own scale in multiplayer. Only the server can.");
+                        return;
                     }
-                    else if (mwmp::Main::get().getLocalPlayer()->isLoggedIn() && ptr.isInCell() && ptr.getCellRef().getScale() != scale)
+                    if (mwmp::PlayerList::isDedicatedPlayer(ptr))
                     {
-                        // Ignore attempts to change another player's scale
-                        if (mwmp::PlayerList::isDedicatedPlayer(ptr))
-                        {
-                            MWBase::Environment::get().getWindowManager()->
-                                messageBox("You can't change the scales of other players. Only the server can.");
-                        }
-                        else
-                        {
-                            mwmp::ObjectList *objectList = mwmp::Main::get().getNetworking()->getObjectList();
-                            objectList->reset();
-                            objectList->packetOrigin = ScriptController::getPacketOriginFromContextType(runtime.getContext().getContextType());
-                            objectList->originClientScript = runtime.getContext().getCurrentScriptName();
-                            objectList->addObjectScale(ptr, scale);
-                            objectList->sendObjectScale();
-                        }
+                        MWBase::Environment::get().getWindowManager()->messageBox(
+                            "You can't change the scales of other players. Only the server can.");
+                        return;
                     }
-                    /*
-                        End of tes3mp addition
-                    */
-
-                    /*
-                        Start of tes3mp change (major)
-
-                        Disable unilateral scaling on this client and expect the server's reply to our
-                        packet to do it instead
-                    */
-                    //MWBase::Environment::get().getWorld()->scaleObject(ptr,scale);
-                    /*
-                        End of tes3mp change (major)
-                    */
+                    if (ptr.isInCell() && ptr.getCellRef().getScale() != scale)
+                    {
+                        mwmp::ObjectList* objectList = mwmp::Main::get().getNetworking()->getObjectList();
+                        objectList->reset();
+                        objectList->packetOrigin
+                            = ScriptController::getPacketOriginFromContextType(runtime.getContext().getContextType());
+                        objectList->originClientScript = runtime.getContext().getCurrentScriptName();
+                        objectList->addObjectScale(ptr, scale);
+                        objectList->sendObjectScale();
+                    }
+                    return;
                 }
+                MWBase::Environment::get().getWorld()->scaleObject(ptr, scale);
+            }
         };
 
         template <class R>
@@ -456,6 +451,10 @@ namespace MWScript
 
                 bool isPlayer = ptr == MWMechanics::getPlayer();
                 auto world = MWBase::Environment::get().getWorld();
+                const MWWorld::Cell* originalCell = ptr.getCell() ? ptr.getCell()->getCell() : nullptr;
+                const ESM::RefId originalWorldspace = originalCell ? originalCell->getWorldSpace() : ESM::RefId();
+                const int originalGridX = originalCell ? originalCell->getGridX() : 0;
+                const int originalGridY = originalCell ? originalCell->getGridY() : 0;
                 auto worldModel = MWBase::Environment::get().getWorldModel();
                 if (ptr.getClass().isActor())
                     ptr.getClass().getCreatureStats(ptr).setTeleported(true);
@@ -480,97 +479,6 @@ namespace MWScript
                     {
                         Log(Debug::Error) << error;
                         return;
-                        MWBase::Environment::get().getWorld()->getPlayer().setTeleported(true);
-                    }
-
-                    Interpreter::Type_Float x = runtime[0].mFloat;
-                    runtime.pop();
-                    Interpreter::Type_Float y = runtime[0].mFloat;
-                    runtime.pop();
-                    Interpreter::Type_Float z = runtime[0].mFloat;
-                    runtime.pop();
-                    Interpreter::Type_Float zRot = runtime[0].mFloat;
-                    runtime.pop();
-                    std::string cellID = runtime.getStringLiteral (runtime[0].mInteger);
-                    runtime.pop();
-
-                    MWWorld::CellStore* store = nullptr;
-                    try
-                    {
-                        store = MWBase::Environment::get().getWorld()->getInterior(cellID);
-                    }
-                    catch(std::exception&)
-                    {
-                        // cell not found, move to exterior instead (vanilla PositionCell compatibility)
-                        const ESM::Cell* cell = MWBase::Environment::get().getWorld()->getExterior(cellID);
-                        int cx,cy;
-                        MWBase::Environment::get().getWorld()->positionToIndex(x,y,cx,cy);
-                        store = MWBase::Environment::get().getWorld()->getExterior(cx,cy);
-                        if(!cell)
-                        {
-                            std::string error = "Warning: PositionCell: unknown interior cell (" + cellID + "), moving to exterior instead";
-                            runtime.getContext().report (error);
-                            Log(Debug::Warning) << error;
-                        }
-                    }
-                    if(store)
-                    {
-                        /*
-                            Start of tes3mp addition
-
-                            Track the original cell of this object in case we need to use it when sending a packet
-                        */
-                        ESM::Cell originalCell = *ptr.getCell()->getCell();
-                        /*
-                            End of tes3mp addition
-                        */
-
-                        MWWorld::Ptr base = ptr;
-                        ptr = MWBase::Environment::get().getWorld()->moveObject(ptr,store,x,y,z);
-                        dynamic_cast<MWScript::InterpreterContext&>(runtime.getContext()).updatePtr(base,ptr);
-
-                        /*
-                            Start of tes3mp addition
-
-                            Send ActorCellChange packets when actors are moved here, regardless of whether we're
-                            the cell authority or not; the server can decide if it wants to comply with them
-                        */
-                        if (ptr.getClass().isActor() && !mwmp::Main::get().getCellController()->isSameCell(originalCell, *store->getCell()))
-                        {
-                            mwmp::BaseActor baseActor;
-                            baseActor.refNum = ptr.getCellRef().getRefNum().mIndex;
-                            baseActor.mpNum = ptr.getCellRef().getMpNum();
-                            baseActor.cell = *store->getCell();
-                            baseActor.position = ptr.getRefData().getPosition();
-                            baseActor.isFollowerCellChange = true;
-
-                            mwmp::ActorList* actorList = mwmp::Main::get().getNetworking()->getActorList();
-                            actorList->reset();
-                            actorList->cell = originalCell;
-
-                            LOG_MESSAGE_SIMPLE(TimedLog::LOG_INFO, "Sending ID_ACTOR_CELL_CHANGE about %s %i-%i to server",
-                                ptr.getCellRef().getRefId().c_str(), baseActor.refNum, baseActor.mpNum);
-
-                            LOG_APPEND(TimedLog::LOG_INFO, "- Moved from %s to %s", actorList->cell.getDescription().c_str(),
-                                baseActor.cell.getDescription().c_str());
-
-                            actorList->addCellChangeActor(baseActor);
-                            actorList->sendCellChangeActors();
-                        }
-                        /*
-                            End of tes3mp addition
-                        */
-
-                        float ax = ptr.getRefData().getPosition().rot[0];
-                        float ay = ptr.getRefData().getPosition().rot[1];
-                        // Note that you must specify ZRot in minutes (1 degree = 60 minutes; north = 0, east = 5400, south = 10800, west = 16200)
-                        // except for when you position the player, then degrees must be used.
-                        // See "Morrowind Scripting for Dummies (9th Edition)" pages 50 and 54 for reference.
-                        if(ptr != MWMechanics::getPlayer())
-                            zRot = zRot/60.0f;
-                        MWBase::Environment::get().getWorld()->rotateObject(ptr,ax,ay,osg::DegreesToRadians(zRot));
-
-                        ptr.getClass().adjustPosition(ptr, false);
                     }
                     Log(Debug::Warning) << error;
                     const ESM::ExteriorCellLocation cellIndex
@@ -581,6 +489,25 @@ namespace MWScript
                 MWWorld::Ptr base = ptr;
                 ptr = world->moveObject(ptr, store, osg::Vec3f(x, y, z));
                 dynamic_cast<MWScript::InterpreterContext&>(runtime.getContext()).updatePtr(base, ptr);
+
+                const MWWorld::Cell* destinationCell = ptr.getCell()->getCell();
+                if (mwmp::Main::get().getLocalPlayer()->isLoggedIn() && ptr.getClass().isActor() && originalCell
+                    && (originalWorldspace != destinationCell->getWorldSpace()
+                        || originalGridX != destinationCell->getGridX() || originalGridY != destinationCell->getGridY()))
+                {
+                    mwmp::BaseActor baseActor;
+                    baseActor.refNum = ptr.getCellRef().getRefNum().mIndex;
+                    baseActor.mpNum = ptr.getCellRef().getMpNum();
+                    baseActor.cell = destinationCell->getEsm3();
+                    baseActor.position = ptr.getRefData().getPosition();
+                    baseActor.isFollowerCellChange = true;
+
+                    mwmp::ActorList* actorList = mwmp::Main::get().getNetworking()->getActorList();
+                    actorList->reset();
+                    actorList->cell = originalCell->getEsm3();
+                    actorList->addCellChangeActor(baseActor);
+                    actorList->sendCellChangeActors();
+                }
 
                 auto rot = ptr.getRefData().getPosition().asRotationVec3();
                 // Convert twice to replicate a Morrowind.exe bug
@@ -676,89 +603,6 @@ namespace MWScript
                     runtime.getContext().report(message);
                     Log(Debug::Error) << message;
                     return;
-                    std::string itemID = runtime.getStringLiteral (runtime[0].mInteger);
-                    runtime.pop();
-                    std::string cellID = runtime.getStringLiteral (runtime[0].mInteger);
-                    runtime.pop();
-
-                    Interpreter::Type_Float x = runtime[0].mFloat;
-                    runtime.pop();
-                    Interpreter::Type_Float y = runtime[0].mFloat;
-                    runtime.pop();
-                    Interpreter::Type_Float z = runtime[0].mFloat;
-                    runtime.pop();
-                    Interpreter::Type_Float zRotDegrees = runtime[0].mFloat;
-                    runtime.pop();
-
-                    MWWorld::CellStore* store = nullptr;
-                    try
-                    {
-                        store = MWBase::Environment::get().getWorld()->getInterior(cellID);
-                    }
-                    catch(std::exception&)
-                    {
-                        const ESM::Cell* cell = MWBase::Environment::get().getWorld()->getExterior(cellID);
-                        int cx,cy;
-                        MWBase::Environment::get().getWorld()->positionToIndex(x,y,cx,cy);
-                        store = MWBase::Environment::get().getWorld()->getExterior(cx,cy);
-                        if(!cell)
-                        {
-                            runtime.getContext().report ("unknown cell (" + cellID + ")");
-                            Log(Debug::Error) << "Error: unknown cell (" << cellID << ")";
-                        }
-                    }
-                    if(store)
-                    {
-                        ESM::Position pos;
-                        pos.pos[0] = x;
-                        pos.pos[1] = y;
-                        pos.pos[2] = z;
-                        pos.rot[0] = pos.rot[1] = 0;
-                        pos.rot[2] = osg::DegreesToRadians(zRotDegrees);
-                        MWWorld::ManualRef ref(MWBase::Environment::get().getWorld()->getStore(),itemID);
-                        ref.getPtr().getCellRef().setPosition(pos);
-                        MWWorld::Ptr placed = MWBase::Environment::get().getWorld()->placeObject(ref.getPtr(),store,pos);
-                        placed.getClass().adjustPosition(placed, true);
-
-                        /*
-                            Start of tes3mp addition
-
-                            Send an ID_OBJECT_PLACE or ID_OBJECT_SPAWN packet every time an object is placed
-                            in the world through a script
-                        */
-                        if (mwmp::Main::get().getLocalPlayer()->isLoggedIn())
-                        {
-                            mwmp::ObjectList *objectList = mwmp::Main::get().getNetworking()->getObjectList();
-                            objectList->reset();
-                            objectList->packetOrigin = ScriptController::getPacketOriginFromContextType(runtime.getContext().getContextType());
-                            objectList->originClientScript = runtime.getContext().getCurrentScriptName();
-
-                            if (placed.getClass().isActor())
-                            {
-                                objectList->addObjectSpawn(placed);
-                                objectList->sendObjectSpawn();
-                            }
-                            else
-                            {
-                                objectList->addObjectPlace(placed);
-                                objectList->sendObjectPlace();
-                            }
-                        }
-                        /*
-                            End of tes3mp addition
-                        */
-
-                        /*
-                            Start of tes3mp change (major)
-
-                            Instead of actually keeping this object as is, delete it after sending the packet
-                            and wait for the server to send it back with a unique mpNum of its own
-                        */
-                        MWBase::Environment::get().getWorld()->deleteObject(placed);
-                        /*
-                            End of tes3mp change (major)
-                        */
-                    }
                 }
 
                 ESM::Position pos;
@@ -772,6 +616,7 @@ namespace MWScript
                 ref.getPtr().getCellRef().setPosition(pos);
                 MWWorld::Ptr placed = MWBase::Environment::get().getWorld()->placeObject(ref.getPtr(), store, pos);
                 placed.getClass().adjustPosition(placed, true);
+                sendPlacedObjectToServer(placed, runtime);
             }
         };
 
@@ -803,65 +648,6 @@ namespace MWScript
                     const ESM::ExteriorCellLocation cellIndex
                         = ESM::positionToExteriorCellLocation(x, y, player.getCell()->getCell()->getWorldSpace());
                     store = &MWBase::Environment::get().getWorldModel()->getExterior(cellIndex);
-                    MWWorld::CellStore* store = nullptr;
-                    if (player.getCell()->isExterior())
-                    {
-                        int cx,cy;
-                        MWBase::Environment::get().getWorld()->positionToIndex(x,y,cx,cy);
-                        store = MWBase::Environment::get().getWorld()->getExterior(cx,cy);
-                    }
-                    else
-                        store = player.getCell();
-
-                    ESM::Position pos;
-                    pos.pos[0] = x;
-                    pos.pos[1] = y;
-                    pos.pos[2] = z;
-                    pos.rot[0] = pos.rot[1] = 0;
-                    pos.rot[2] = osg::DegreesToRadians(zRotDegrees);
-                    MWWorld::ManualRef ref(MWBase::Environment::get().getWorld()->getStore(),itemID);
-                    ref.getPtr().getCellRef().setPosition(pos);
-                    MWWorld::Ptr placed = MWBase::Environment::get().getWorld()->placeObject(ref.getPtr(),store,pos);
-                    placed.getClass().adjustPosition(placed, true);
-
-                    /*
-                        Start of tes3mp addition
-
-                        Send an ID_OBJECT_PLACE or ID_OBJECT_SPAWN packet every time an object is placed
-                        in the world through a script
-                    */
-                    if (mwmp::Main::get().getLocalPlayer()->isLoggedIn())
-                    {
-                        mwmp::ObjectList *objectList = mwmp::Main::get().getNetworking()->getObjectList();
-                        objectList->reset();
-                        objectList->packetOrigin = ScriptController::getPacketOriginFromContextType(runtime.getContext().getContextType());
-                        objectList->originClientScript = runtime.getContext().getCurrentScriptName();
-
-                        if (placed.getClass().isActor())
-                        {
-                            objectList->addObjectSpawn(placed);
-                            objectList->sendObjectSpawn();
-                        }
-                        else
-                        {
-                            objectList->addObjectPlace(placed);
-                            objectList->sendObjectPlace();
-                        }
-                    }
-                    /*
-                        End of tes3mp addition
-                    */
-
-                    /*
-                        Start of tes3mp change (major)
-
-                        Instead of actually keeping this object as is, delete it after sending the packet
-                        and wait for the server to send it back with a unique mpNum of its own
-                    */
-                    MWBase::Environment::get().getWorld()->deleteObject(placed);
-                    /*
-                        End of tes3mp change (major)
-                    */
                 }
                 else
                     store = player.getCell();
@@ -877,6 +663,7 @@ namespace MWScript
                 ref.getPtr().getCellRef().setPosition(pos);
                 MWWorld::Ptr placed = MWBase::Environment::get().getWorld()->placeObject(ref.getPtr(), store, pos);
                 placed.getClass().adjustPosition(placed, true);
+                sendPlacedObjectToServer(placed, runtime);
             }
         };
 
@@ -916,48 +703,7 @@ namespace MWScript
                     MWWorld::Ptr ptr = MWBase::Environment::get().getWorld()->safePlaceObject(
                         ref.getPtr(), actor, actor.getCell(), direction, distance);
                     MWBase::Environment::get().getWorld()->scaleObject(ptr, actor.getCellRef().getScale());
-                        MWWorld::Ptr ptr = MWBase::Environment::get().getWorld()->safePlaceObject(ref.getPtr(), actor, actor.getCell(), direction, distance);
-                        MWBase::Environment::get().getWorld()->scaleObject(ptr, actor.getCellRef().getScale());
-
-                        /*
-                            Start of tes3mp addition
-
-                            Send an ID_OBJECT_PLACE or ID_OBJECT_SPAWN packet every time an object is placed
-                            in the world through a script
-                        */
-                        if (mwmp::Main::get().getLocalPlayer()->isLoggedIn())
-                        {
-                            mwmp::ObjectList *objectList = mwmp::Main::get().getNetworking()->getObjectList();
-                            objectList->reset();
-                            objectList->packetOrigin = ScriptController::getPacketOriginFromContextType(runtime.getContext().getContextType());
-                            objectList->originClientScript = runtime.getContext().getCurrentScriptName();
-
-                            if (ptr.getClass().isActor())
-                            {
-                                objectList->addObjectSpawn(ptr);
-                                objectList->sendObjectSpawn();
-                            }
-                            else
-                            {
-                                objectList->addObjectPlace(ptr);
-                                objectList->sendObjectPlace();
-                            }
-                        }
-                        /*
-                            End of tes3mp addition
-                        */
-
-                        /*
-                            Start of tes3mp change (major)
-
-                            Instead of actually keeping this object as is, delete it after sending the packet
-                            and wait for the server to send it back with a unique mpNum of its own
-                        */
-                        MWBase::Environment::get().getWorld()->deleteObject(ptr);
-                        /*
-                            End of tes3mp change (major)
-                        */
-                    }
+                    sendPlacedObjectToServer(ptr, runtime);
                 }
             }
         };

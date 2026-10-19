@@ -188,7 +188,7 @@ namespace MWScript
                     origin determined by serverside scripts
                 */
                 context.trackContextType(Interpreter::Context::SCRIPT_GLOBAL);
-                context.trackCurrentScriptName(script.first);
+                context.trackCurrentScriptName(script.first.toString());
                 /*
                     End of tes3mp addition
                 */

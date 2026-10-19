@@ -744,8 +744,8 @@ namespace MWGui
             */
 
             // If item is ingredient or potion don't stop drag and drop to simplify action of taking more than one 1 item
-            if ((ptr.getTypeName() == typeid(ESM::Potion).name() ||
-                 ptr.getTypeName() == typeid(ESM::Ingredient).name())
+            if ((ptr.getType() == ESM::Potion::sRecordId ||
+                 ptr.getType() == ESM::Ingredient::sRecordId)
                 && mDragAndDrop->mDraggedCount > 1)
             {
                 // Item can be provided from other window for example container.

@@ -8,6 +8,10 @@
 
 #include <components/esm/refid.hpp>
 
+#include "../mwmp/Main.hpp"
+#include "../mwmp/Networking.hpp"
+#include "../mwmp/ObjectList.hpp"
+
 #include <MyGUI_InputManager.h>
 #include <MyGUI_RenderManager.h>
 
@@ -31,6 +35,13 @@ namespace MWGui
                 : world.dropObjectOnGround(player, item.mBase, count, copy);
 
             dropped.getCellRef().setOwner(ESM::RefId());
+
+            mwmp::ObjectList* objectList = mwmp::Main::get().getNetworking()->getObjectList();
+            objectList->reset();
+            objectList->packetOrigin = mwmp::CLIENT_GAMEPLAY;
+            objectList->addObjectPlace(dropped, true);
+            objectList->sendObjectPlace();
+            world.deleteObject(dropped);
 
             return dropped;
         }

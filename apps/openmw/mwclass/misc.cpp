@@ -276,7 +276,7 @@ namespace MWClass
         Upstream split object insertion into rendering and physics, so this hook
         lives in insertObjectPhysics where a PhysicsSystem is available.
     */
-    void Misc::insertObjectPhysics(const MWWorld::Ptr& ptr, const std::string& model, const osg::Quat& rotation,
+    void Miscellaneous::insertObjectPhysics(const MWWorld::Ptr& ptr, const std::string& model, const osg::Quat& rotation,
         MWPhysics::PhysicsSystem& physics) const
     {
         if (!model.empty())

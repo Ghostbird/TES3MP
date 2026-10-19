@@ -172,12 +172,11 @@ namespace MWMechanics
 
                     Send an ID_PLAYER_SPELLBOOK packet every time a spell is purged here
                 */
-                mwmp::Main::get().getLocalPlayer()->sendSpellChange(spell->mId, mwmp::SpellbookChanges::REMOVE);
+                mwmp::Main::get().getLocalPlayer()->sendSpellChange(spell->mId.toString(), mwmp::SpellbookChanges::REMOVE);
                 /*
                     End of tes3mp addition
                 */
 
-                mSpells.erase(iter++);
                 purged.push_back(spell->mId);
             }
             else
@@ -236,14 +235,13 @@ namespace MWMechanics
             mUsedPowers.emplace_back(spell, timestamp);
         else
             it->second = timestamp;
-        mUsedPowers[spell] = MWBase::Environment::get().getWorld()->getTimeStamp();
 
         /*
             Start of tes3mp addition
 
             Send an ID_PLAYER_COOLDOWN packet every time a cooldown is recorded here
         */
-        mwmp::Main::get().getLocalPlayer()->sendCooldownChange(spell->mId, MWBase::Environment::get().getWorld()->getTimeStamp().getDay(),
+        mwmp::Main::get().getLocalPlayer()->sendCooldownChange(spell->mId.toString(), MWBase::Environment::get().getWorld()->getTimeStamp().getDay(),
             MWBase::Environment::get().getWorld()->getTimeStamp().getHour());
         /*
             End of tes3mp addition
@@ -261,7 +259,12 @@ namespace MWMechanics
         timestamp.mDay = startDay;
         timestamp.mHour = startHour;
 
-        mUsedPowers[spell] = MWWorld::TimeStamp(timestamp);
+        const auto it = std::find_if(std::begin(mUsedPowers), std::end(mUsedPowers),
+            [&](const auto& pair) { return pair.first == spell; });
+        if (it == mUsedPowers.end())
+            mUsedPowers.emplace_back(spell, MWWorld::TimeStamp(timestamp));
+        else
+            it->second = MWWorld::TimeStamp(timestamp);
     }
     /*
         End of tes3mp addition

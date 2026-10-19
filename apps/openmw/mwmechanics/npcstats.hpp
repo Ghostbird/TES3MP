@@ -110,6 +110,8 @@ namespace MWMechanics
 
         int getLevelProgress() const;
         void setLevelProgress(int progress);
+        int getSkillIncrease(int attribute) const;
+        void setSkillIncrease(int attribute, int value);
 
         int getLevelupAttributeMultiplier(ESM::RefId attribute) const;
         int getSkillIncreasesForAttribute(ESM::RefId attribute) const;
@@ -129,8 +131,6 @@ namespace MWMechanics
             /*
                 End of tes3mp addition
             */
-
-            int getLevelupAttributeMultiplier(int attribute) const;
 
         void levelUp();
 

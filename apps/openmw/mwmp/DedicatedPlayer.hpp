@@ -55,7 +55,7 @@ namespace mwmp
         void removeMarker();
         void enableMarker();
 
-        void createReference(const std::string& recId);
+        void createReference(const ESM::RefId& recId);
         void deleteReference();
 
         MWWorld::Ptr getPtr();
@@ -76,7 +76,7 @@ namespace mwmp
         ESM::CustomMarker marker;
         bool markerEnabled;
 
-        std::string previousRace;
+        ESM::RefId previousRace;
         std::string previousCreatureRefId;
         bool previousDisplayCreatureName;
 

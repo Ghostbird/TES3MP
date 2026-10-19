@@ -38,6 +38,7 @@ namespace MWGui
         void onFrame();
 
         void finish();
+        void finish(bool deleteDragItems);
 
     private:
         void updateDraggedCount(std::size_t desiredCount);
@@ -51,7 +52,6 @@ namespace MWGui
             This is required to reduce unpredictable behavior for drags approved
             or rejected by the server
         */
-        void finish(bool deleteDragItems = false);
         /*
             End of tes3mp change (minor)
         */

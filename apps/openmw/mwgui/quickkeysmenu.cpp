@@ -38,6 +38,7 @@
 
 #include "../mwmechanics/actorutil.hpp"
 #include "../mwmechanics/creaturestats.hpp"
+#include "../mwmechanics/npcstats.hpp"
 #include "../mwmechanics/spellutil.hpp"
 
 #include "itemselection.hpp"
@@ -310,7 +311,8 @@ namespace MWGui
             by a player, not by a packet received from the server
         */
         if (!mwmp::Main::get().getLocalPlayer()->isReceivingQuickKeys)
-            mwmp::Main::get().getLocalPlayer()->sendQuickKey(mSelected->index, Type_Item, item.getCellRef().getRefId());
+            mwmp::Main::get().getLocalPlayer()->sendQuickKey(
+                mSelected->index, Type_Item, item.getCellRef().getRefId().toString());
         /*
             End of tes3mp addition
         */
@@ -360,7 +362,8 @@ namespace MWGui
             Send a PLAYER_QUICKKEYS packet whenever a key is assigned to an item's magic
         */
         if (!mwmp::Main::get().getLocalPlayer()->isReceivingQuickKeys)
-            mwmp::Main::get().getLocalPlayer()->sendQuickKey(mSelected->index, Type_MagicItem, item.getCellRef().getRefId());
+            mwmp::Main::get().getLocalPlayer()->sendQuickKey(
+                mSelected->index, Type_MagicItem, item.getCellRef().getRefId().toString());
         /*
             End of tes3mp addition
         */
@@ -409,7 +412,7 @@ namespace MWGui
             Send a PLAYER_QUICKKEYS packet whenever a key is assigned to a spell
         */
         if (!mwmp::Main::get().getLocalPlayer()->isReceivingQuickKeys)
-            mwmp::Main::get().getLocalPlayer()->sendQuickKey(mSelected->index, Type_Magic, spellId);
+            mwmp::Main::get().getLocalPlayer()->sendQuickKey(mSelected->index, Type_Magic, spellId.toString());
         /*
             End of tes3mp addition
         */
@@ -482,83 +485,21 @@ namespace MWGui
 
             if (key->type == ESM::QuickKeys::Type::Item)
             {
+                const bool isWeapon = item.getType() == ESM::Weapon::sRecordId;
+                const bool isTool = item.getType() == ESM::Probe::sRecordId
+                    || item.getType() == ESM::Lockpick::sRecordId;
                 if (!store.isEquipped(item.getCellRef().getRefId()))
-                bool isWeapon = item.getTypeName() == typeid(ESM::Weapon).name();
-                bool isTool = item.getTypeName() == typeid(ESM::Probe).name() ||
-                    item.getTypeName() == typeid(ESM::Lockpick).name();
-
-                // delay weapon switching if player is busy
-                if (isDelayNeeded && (isWeapon || isTool))
                 {
-                    mActivated = key;
-                    return;
+                    const char drawState = (isWeapon || isTool)
+                        ? static_cast<char>(MWMechanics::DrawState::Weapon)
+                        : static_cast<char>(MWMechanics::DrawState::Nothing);
+                    mwmp::Main::get().getLocalPlayer()->sendItemUse(item, false, drawState);
                 }
-                else if (isReturnNeeded && (isWeapon || isTool))
-                {
-                    return;
-                }
-
-                /*
-                    Start of tes3mp change (major)
-
-                    Instead of unilaterally using an item, send an ID_PLAYER_ITEM_USE packet and let the server
-                    decide if the item actually gets used
-                */
-
-                /*
-                if (!store.isEquipped(item))
-                    MWBase::Environment::get().getWindowManager()->useItem(item);
-                MWWorld::ConstContainerStoreIterator rightHand
-                    = store.getSlot(MWWorld::InventoryStore::Slot_CarriedRight);
-                // change draw state only if the item is in player's right hand
-                if (rightHand != store.end() && item == *rightHand)
-                {
-                    MWBase::Environment::get().getWorld()->getPlayer().setDrawState(MWMechanics::DrawState::Weapon);
-                }
-                */
-
-                bool shouldDraw = isWeapon || isTool;
-                
-                if (!store.isEquipped(item))
-                {
-                    mwmp::Main::get().getLocalPlayer()->sendItemUse(item, false, shouldDraw ? MWMechanics::DrawState_Weapon : MWMechanics::DrawState_Nothing);
-                }
-                /*
-                    End of tes3mp change (major)
-                */
             }
             else if (key->type == ESM::QuickKeys::Type::MagicItem)
             {
-                // equip, if it can be equipped and isn't yet equipped
-
-                /*
-                    Start of tes3mp change (major)
-
-                    Instead of unilaterally using an item, send an ID_PLAYER_ITEM_USE packet and let the server
-                    decide if the item actually gets used
-                */
-                /*
-                if (!item.getClass().getEquipmentSlots(item).first.empty() && !store.isEquipped(item))
-                {
-                    MWBase::Environment::get().getWindowManager()->useItem(item);
-
-                    // make sure that item was successfully equipped
-                    if (!store.isEquipped(item))
-                        return;
-                }
-                
-                store.setSelectedEnchantItem(it);
-                // to reset WindowManager::mSelectedSpell immediately
-                MWBase::Environment::get().getWindowManager()->setSelectedEnchantItem(*it);
-
-                MWBase::Environment::get().getWorld()->getPlayer().setDrawState(MWMechanics::DrawState::Spell);
-                MWBase::Environment::get().getWorld()->getPlayer().setDrawState(MWMechanics::DrawState_Spell);
-                */
-
-                mwmp::Main::get().getLocalPlayer()->sendItemUse(item, true, MWMechanics::DrawState_Spell);
-                /*
-                    End of tes3mp change (major)
-                */
+                mwmp::Main::get().getLocalPlayer()->sendItemUse(
+                    item, true, static_cast<char>(MWMechanics::DrawState::Spell));
             }
         }
         else if (key->type == ESM::QuickKeys::Type::Magic)
@@ -578,17 +519,14 @@ namespace MWGui
             store.setSelectedEnchantItem(store.end());
             MWBase::Environment::get().getWindowManager()->setSelectedSpell(
                 spellId, int(MWMechanics::getSpellSuccessChance(spellId, player)));
-            MWBase::Environment::get().getWorld()->getPlayer().setDrawState(MWMechanics::DrawState::Spell);
-            MWBase::Environment::get().getWindowManager()
-                ->setSelectedSpell(spellId, int(MWMechanics::getSpellSuccessChance(spellId, player)));
-            MWBase::Environment::get().getWorld()->getPlayer().setDrawState(MWMechanics::DrawState_Spell);
+            player.getClass().getNpcStats(player).setDrawState(MWMechanics::DrawState::Spell);
 
             /*
                 Start of tes3mp addition
 
                 Send a PlayerMiscellaneous packet with the player's new selected spell
             */
-            mwmp::Main::get().getLocalPlayer()->sendSelectedSpell(spellId);
+            mwmp::Main::get().getLocalPlayer()->sendSelectedSpell(spellId.toString());
             /*
                 End of tes3mp addition
             */

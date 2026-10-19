@@ -116,10 +116,6 @@ namespace MWMechanics
         End of tes3mp addition
     */
 
-    const osg::Vec3f actorPos(actor.getRefData().getPosition().asVec3());
-    const osg::Vec3f targetPos(target.getRefData().getPosition().asVec3());
-    const osg::Vec3f targetDir = targetPos - actorPos;
-
         AiFollowStorage& storage = state.get<AiFollowStorage>();
 
         bool& rotate = storage.mTurnActorToTarget;

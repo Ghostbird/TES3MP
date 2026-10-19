@@ -488,7 +488,7 @@ namespace MWWorld
             Track whether the local WeatherManager should be creating any weather changes
             by itself; when set to false, only weather changes sent by the server are used
         */
-        bool mWeatherCreationState = false;
+        bool mWeatherCreationState = true;
         /*
             End of tes3mp addition
         */

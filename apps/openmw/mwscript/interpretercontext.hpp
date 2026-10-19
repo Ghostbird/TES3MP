@@ -65,7 +65,7 @@ namespace MWScript
                 Used for tracking and checking the type of this InterpreterContext, as well as
                 its current script
             */
-            unsigned short mContextType;
+            unsigned short mContextType = 0;
             std::string mCurrentScriptName = "";
 
             virtual unsigned short getContextType() const;

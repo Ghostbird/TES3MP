@@ -76,19 +76,8 @@ namespace MWScript
                 bool enabled = MWBase::Environment::get().getWorld()->toggleCollisionMode();
 
                 runtime.getContext().report(enabled ? "Collision -> On" : "Collision -> Off");
+                mwmp::Main::get().getLocalPlayer()->hasTcl = !enabled;
             }
-                    /*
-                        Start of tes3mp addition
-
-                        Update the LocalPlayer's tclState so it gets sent to the server
-                    */
-                    mwmp::Main::get().getLocalPlayer()->hasTcl = !enabled;
-                    /*
-                        End of tes3mp addition
-                    */
-
-                    runtime.getContext().report (enabled ? "Collision -> On" : "Collision -> Off");
-                }
         };
 
         template <class R>

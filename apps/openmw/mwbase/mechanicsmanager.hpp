@@ -297,6 +297,7 @@ namespace MWBase
         virtual bool isItemStolenFrom(const ESM::RefId& itemid, const MWWorld::Ptr& ptr) = 0;
 
         virtual bool isBoundItem(const MWWorld::Ptr& item) = 0;
+        virtual bool isBoundItem(const std::string& itemId) = 0;
         virtual bool isAllowedToUse(const MWWorld::Ptr& ptr, const MWWorld::Ptr& target, MWWorld::Ptr& victim) = 0;
 
         /// Turn actor into werewolf or normal form.

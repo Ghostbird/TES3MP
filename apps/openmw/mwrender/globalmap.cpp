@@ -42,7 +42,9 @@
 
 #include "../mwbase/environment.hpp"
 
+#include "../mwworld/cellstore.hpp"
 #include "../mwworld/esmstore.hpp"
+#include "../mwworld/worldmodel.hpp"
 
 #include "vismask.hpp"
 
@@ -694,7 +696,9 @@ namespace MWRender
                     // Keep this tile marked as explored so we don't send any more packets for it
                     worldstate->markExploredMapTile(cellX, cellY);
 
-                    if (MWBase::Environment::get().getWorld()->getExterior(cellX, cellY)->getCell()->mContextList.empty() == false)
+                    const MWWorld::CellStore& cellStore = MWBase::Environment::get().getWorldModel()->getExterior(
+                        ESM::ExteriorCellLocation(cellX, cellY, ESM::Cell::sDefaultWorldspaceId));
+                    if (!cellStore.getCell()->getEsm3().mContextList.empty())
                     {
                         LOG_MESSAGE_SIMPLE(TimedLog::LOG_INFO, "New global map tile corresponds to cell %i, %i", originToCellX.at(imageDest.mX), originToCellY.at(imageDest.mY));
 

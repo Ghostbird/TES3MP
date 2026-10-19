@@ -63,16 +63,12 @@ namespace MWWorld
             MWBase::Environment::get().getLuaManager()->skillLevelUp(player, skill, "book");
 
             npcStats.flagAsUsed(ref->mBase->mId);
-            npcStats.increaseSkill (ref->mBase->mData.mSkillId, *class_, true, true);
-
-            npcStats.flagAsUsed (ref->mBase->mId);
-
             /*
                 Start of tes3mp addition
 
                 Send an ID_PLAYER_BOOK packet every time a player reads a skill book
             */
-            mwmp::Main::get().getLocalPlayer()->sendBook(ref->mBase->mId);
+            mwmp::Main::get().getLocalPlayer()->sendBook(ref->mBase->mId.toString());
             /*
                 End of tes3mp addition
             */

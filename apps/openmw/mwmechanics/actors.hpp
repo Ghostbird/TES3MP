@@ -166,13 +166,10 @@ namespace MWMechanics
                 End of tes3mp addition
             */
 
-            bool isAttackPreparing(const MWWorld::Ptr& ptr);
-            bool isRunning(const MWWorld::Ptr& ptr);
-            bool isSneaking(const MWWorld::Ptr& ptr);
-
         bool isCastingSpell(const MWWorld::Ptr& ptr) const;
         bool isReadyToBlock(const MWWorld::Ptr& ptr) const;
         bool isAttackingOrSpell(const MWWorld::Ptr& ptr) const;
+        void setAttackingOrSpell(const MWWorld::Ptr& ptr, bool state) const;
 
         int getGreetingTimer(const MWWorld::Ptr& ptr) const;
         float getAngleToPlayer(const MWWorld::Ptr& ptr) const;
@@ -201,19 +198,6 @@ namespace MWMechanics
         void killDeadActors();
 
         void purgeSpellEffects(ESM::RefNum creature) const;
-            /*
-                Start of tes3mp addition
-
-                Make it possible to set the attackingOrSpell state from elsewhere in the code
-            */
-            void setAttackingOrSpell(const MWWorld::Ptr& ptr, bool state) const;
-            /*
-                End of tes3mp addition
-            */
-
-            int getGreetingTimer(const MWWorld::Ptr& ptr) const;
-            float getAngleToPlayer(const MWWorld::Ptr& ptr) const;
-            GreetingState getGreetingState(const MWWorld::Ptr& ptr) const;
             bool isTurningToPlayer(const MWWorld::Ptr& ptr) const;
 
         void predictAndAvoidCollisions(float duration) const;

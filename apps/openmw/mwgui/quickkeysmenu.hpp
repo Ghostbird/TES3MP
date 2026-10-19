@@ -67,10 +67,6 @@ namespace MWGui
             Type_HandToHand
         };
 
-        void write (ESM::ESMWriter& writer);
-        void readRecord (ESM::ESMReader& reader, uint32_t type);
-        void clear() override;
-
         /*
             Start of tes3mp addition
 

@@ -141,6 +141,7 @@ namespace MWRender
         int mHeight;
 
         int mMinX, mMaxX, mMinY, mMaxY;
+        int mCellSize = 18;
     };
 
 }

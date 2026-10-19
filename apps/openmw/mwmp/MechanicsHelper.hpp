@@ -49,8 +49,10 @@ namespace MechanicsHelper
     void createSpellGfx(const MWWorld::Ptr& targetPtr, const std::vector<ESM::ActiveEffect>& mEffects);
 
     bool isStackingSpell(const std::string& id);
-    bool doesEffectListContainEffect(const ESM::EffectList& effectList, short effectId, short attributeId = -1, short skillId = -1);
-    void unequipItemsByEffect(const MWWorld::Ptr& ptr, short enchantmentType, short effectId, short attributeId = -1, short skillId = -1);
+    bool doesEffectListContainEffect(const ESM::EffectList& effectList, ESM::RefId effectId,
+        ESM::RefId attributeId = {}, ESM::RefId skillId = {});
+    void unequipItemsByEffect(const MWWorld::Ptr& ptr, int enchantmentType, ESM::RefId effectId,
+        ESM::RefId attributeId = {}, ESM::RefId skillId = {});
 
     MWWorld::Ptr getItemPtrFromStore(const mwmp::Item& item, MWWorld::ContainerStore& store);
 }

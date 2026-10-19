@@ -69,7 +69,8 @@ namespace MWBase
         virtual bool isNewTopic(const std::string& topic) = 0;
         /*
             End of tes3mp addition
-        
+        */
+
         virtual void addChoice(std::string_view text, int choice) = 0;
         virtual const std::vector<std::pair<std::string, int>>& getChoices() const = 0;
 

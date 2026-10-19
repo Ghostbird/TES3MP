@@ -12,6 +12,7 @@
 */
 
 #include <components/misc/rng.hpp>
+#include <components/misc/strings/format.hpp>
 
 #include "../mwbase/environment.hpp"
 #include "../mwbase/luamanager.hpp"
@@ -79,11 +80,6 @@ namespace MWGui
         if (mFadeTimeRemaining <= 0)
         {
             MWWorld::Ptr player = MWMechanics::getPlayer();
-            MWBase::Environment::get().getWorld()->teleportToClosestMarker(
-                player, ESM::RefId::stringRefId("prisonmarker"));
-            MWBase::Environment::get().getWindowManager()->fadeScreenOut(
-                0.f); // override fade-in caused by cell transition
-
             /*
                 Start of tes3mp change (minor)
 
@@ -91,7 +87,8 @@ namespace MWGui
             */
             if (!mwmp::Main::get().getLocalPlayer()->ignoreJailTeleportation)
             {
-                MWBase::Environment::get().getWorld()->teleportToClosestMarker(player, "prisonmarker");
+                MWBase::Environment::get().getWorld()->teleportToClosestMarker(
+                    player, ESM::RefId::stringRefId("prisonmarker"));
                 MWBase::Environment::get().getWindowManager()->fadeScreenOut(0.f); // override fade-in caused by cell transition
             }
             /*
@@ -142,18 +139,14 @@ namespace MWGui
         // We should not worsen corprus when in prison
         player.getClass().getCreatureStats(player).getActiveSpells().skipWorsenings(mDays * 24);
         MWBase::Environment::get().getLuaManager()->jailTimeServed(player, mDays);
-        for (auto& spell : player.getClass().getCreatureStats(player).getCorprusSpells())
-        {
-            spell.second.mNextWorsening += mDays * 24;
-        }
-
         std::set<int> skills;
         for (int day=0; day<mDays; ++day)
         {
             int skill = Misc::Rng::rollDice(ESM::Skill::Length);
             skills.insert(skill);
 
-            MWMechanics::SkillValue& value = player.getClass().getNpcStats(player).getSkill(skill);
+            const ESM::RefId skillId = ESM::Skill::indexToRefId(skill);
+            MWMechanics::SkillValue& value = player.getClass().getNpcStats(player).getSkill(skillId);
 
             /*
                 Start of tes3mp change (minor)
@@ -162,7 +155,7 @@ namespace MWGui
             */
             if (localPlayer->ignoreJailSkillIncreases)
                 value.setBase(std::max(0.f, value.getBase()-1));
-            else if (skill == ESM::Skill::Security || skill == ESM::Skill::Sneak)
+            else if (skillId == ESM::Skill::Security || skillId == ESM::Skill::Sneak)
             /*
                 End of tes3mp change (minor)
             */
@@ -194,8 +187,10 @@ namespace MWGui
 
         for (const int& skill : skills)
         {
-            std::string skillName = gmst.find(ESM::Skill::sSkillNameIds[skill])->mValue.getString();
-            int skillValue = player.getClass().getNpcStats(player).getSkill(skill).getBase();
+            const ESM::RefId skillId = ESM::Skill::indexToRefId(skill);
+            const ESM::Skill* skillRecord = MWBase::Environment::get().getWorld()->getStore().get<ESM::Skill>().find(skillId);
+            std::string skillName = skillRecord->mName;
+            int skillValue = player.getClass().getNpcStats(player).getSkill(skillId).getBase();
             std::string skillMsg = gmst.find("sNotifyMessage44")->mValue.getString();
 
             /*
@@ -204,7 +199,7 @@ namespace MWGui
                 Account for usage of ignoreJailSkillIncreases
             */
             if (!localPlayer->ignoreJailSkillIncreases &&
-                (skill == ESM::Skill::Sneak || skill == ESM::Skill::Security))
+                (skillId == ESM::Skill::Sneak || skillId == ESM::Skill::Security))
             /*
                 End of tes3mp change (minor)
             */

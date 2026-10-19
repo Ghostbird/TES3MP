@@ -174,6 +174,7 @@ namespace MWWorld
         /// cell is loaded.
 
         Ptr search(const ESM::RefId& id);
+        Ptr searchViaRefNum(const ESM::RefNum& refNum);
         ///< Will return an empty Ptr if cell is not loaded. Does not check references in
         /// containers.
         /// @note Triggers CellStore hasState flag.
