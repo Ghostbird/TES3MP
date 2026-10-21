@@ -649,7 +649,8 @@ namespace MWMechanics
             {
                 if (!target.isInCell())
                     return ESM::ActiveEffect::Flag_Invalid;
-                effect.mArg = summonCreature(effect.mEffectId, target);
+                effect.mArg = summonCreature(
+                    effect.mEffectId, target, spellParams.getSourceSpellId().toString(), effect.mTimeLeft);
             }
             else if (effect.mEffectId == ESM::MagicEffect::BoundGloves)
             {

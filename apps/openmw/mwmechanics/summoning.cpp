@@ -20,6 +20,11 @@
 #include "aifollow.hpp"
 #include "creaturestats.hpp"
 
+#include "../mwmp/CellController.hpp"
+#include "../mwmp/Main.hpp"
+#include "../mwmp/Networking.hpp"
+#include "../mwmp/ObjectList.hpp"
+
 namespace MWMechanics
 {
 
@@ -109,7 +114,8 @@ namespace MWMechanics
         return ESM::RefId();
     }
 
-    ESM::RefNum summonCreature(ESM::RefId effectId, const MWWorld::Ptr& summoner)
+    ESM::RefNum summonCreature(
+        ESM::RefId effectId, const MWWorld::Ptr& summoner, std::string_view sourceSpellId, float duration)
     {
         const ESM::RefId& creatureID = getSummonedCreature(effectId);
         ESM::RefNum creature;
@@ -135,6 +141,16 @@ namespace MWMechanics
                     if (fx)
                         anim->addEffect(
                             Misc::ResourceHelpers::correctMeshPath(fx->mModel.getNormalized()).value(), "", false);
+                }
+
+                if (mwmp::Main::get().getCellController()->hasLocalAuthority(placed.getCell()->getCell()->getEsm3()))
+                {
+                    mwmp::ObjectList* objectList = mwmp::Main::get().getNetworking()->getObjectList();
+                    objectList->reset();
+                    objectList->packetOrigin = mwmp::CLIENT_GAMEPLAY;
+                    objectList->addObjectSpawn(placed, summoner, std::string(sourceSpellId),
+                        ESM::MagicEffect::refIdToIndex(effectId), duration);
+                    objectList->sendObjectSpawn();
                 }
             }
             catch (std::exception& e)

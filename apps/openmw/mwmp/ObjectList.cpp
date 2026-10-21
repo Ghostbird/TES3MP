@@ -424,6 +424,19 @@ void ObjectList::placeObjects(MWWorld::CellStore* cellStore)
 
         MWWorld::Ptr ptrFound = cellStore->searchExact(0, baseObject.mpNum);
 
+        // The server echoes spawn packets to their origin after assigning the shared mpNum.
+        // Match that acknowledgement to the locally-created summon instead of placing a duplicate.
+        if (ptrFound.isEmpty() && guid == Main::get().getLocalPlayer()->guid)
+        {
+            ptrFound = cellStore->searchExact(baseObject.refNum, 0, baseObject.refId);
+            if (!ptrFound.isEmpty())
+            {
+                ptrFound.getCellRef().setMpNum(baseObject.mpNum);
+                LOG_APPEND(TimedLog::LOG_VERBOSE, "-- Updated local spawned actor with mpNum %i", baseObject.mpNum);
+                continue;
+            }
+        }
+
         // Only create this object if it doesn't already exist
         if (ptrFound.isEmpty())
         {

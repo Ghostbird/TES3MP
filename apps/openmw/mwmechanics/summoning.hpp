@@ -23,7 +23,8 @@ namespace MWMechanics
 
     void purgeSummonEffect(const MWWorld::Ptr& summoner, const std::pair<ESM::RefId, ESM::RefNum>& summon);
 
-    ESM::RefNum summonCreature(ESM::RefId effectId, const MWWorld::Ptr& summoner);
+    ESM::RefNum summonCreature(
+        ESM::RefId effectId, const MWWorld::Ptr& summoner, std::string_view sourceSpellId, float duration);
 
     void updateSummons(const MWWorld::Ptr& summoner, bool cleanup);
 }

@@ -23,6 +23,11 @@ namespace mwmp
                 objectList.baseObjects.at(i).mpNum = mwmp::Networking::getPtr()->incrementMpNum();
             }
 
+            // Relay the server-assigned IDs to other clients and acknowledge them to the
+            // sender so its locally-created actor adopts the same mpNum.
+            ObjectProcessor::Do(packet, player, objectList);
+            packet.Send(player.guid);
+
             Script::Call<Script::CallbackIdentity("OnObjectSpawn")>(player.getId(), objectList.cell.getDescription().c_str());
         }
     };
