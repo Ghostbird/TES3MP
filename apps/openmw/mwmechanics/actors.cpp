@@ -36,6 +36,8 @@
 #include "../mwbase/windowmanager.hpp"
 #include "../mwbase/world.hpp"
 
+#include "../mwmp/Main.hpp"
+
 #include "../mwmechanics/aibreathe.hpp"
 
 #include "../mwrender/vismask.hpp"
@@ -57,6 +59,8 @@
 #include "npcstats.hpp"
 #include "steering.hpp"
 #include "summoning.hpp"
+
+#include "../mwmp/MechanicsHelper.hpp"
 
 namespace
 {
@@ -1668,6 +1672,31 @@ namespace MWMechanics
 
                     if (luaControls != nullptr && isConscious(actor.getPtr()))
                         updateLuaControls(actor.getPtr(), isPlayer, *luaControls);
+
+                    // Track player attack button transitions for the outgoing
+                    // TES3MP attack packet. OpenMW 0.52 stores this input in
+                    // CreatureStats rather than the old World::Player state.
+                    if (isPlayer && mwmp::Main::isInitialized())
+                    {
+                        const MWWorld::Ptr& playerPtr = actor.getPtr();
+                        mwmp::Attack* localAttack = MechanicsHelper::getLocalAttack(playerPtr);
+                        const bool isWeaponDrawn
+                            = playerPtr.getClass().getNpcStats(playerPtr).getDrawState() == DrawState::Weapon;
+                        if (localAttack != nullptr && isWeaponDrawn)
+                        {
+                            const bool pressed = playerPtr.getClass().getCreatureStats(playerPtr).getAttackingOrSpell();
+                            if (localAttack->pressed != pressed)
+                            {
+                                MechanicsHelper::resetAttack(localAttack);
+                                localAttack->type = MechanicsHelper::isUsingRangedWeapon(playerPtr)
+                                    ? mwmp::Attack::RANGED
+                                    : mwmp::Attack::MELEE;
+                                localAttack->pressed = pressed;
+                                if (localAttack->type == mwmp::Attack::MELEE || pressed)
+                                    localAttack->shouldSend = true;
+                            }
+                        }
+                    }
                 }
             }
 
@@ -1850,7 +1879,11 @@ namespace MWMechanics
                 if (isPlayer)
                 {
                     // player's death animation is over
-                    MWBase::Environment::get().getStateManager()->askLoadRecent();
+                    // In multiplayer, leave the dead player in the world until
+                    // the server authorizes and sends a resurrection. Reloading
+                    // the latest save here would silently desynchronise the client.
+                    if (!mwmp::Main::isInitialized())
+                        MWBase::Environment::get().getStateManager()->askLoadRecent();
                 }
                 else
                 {

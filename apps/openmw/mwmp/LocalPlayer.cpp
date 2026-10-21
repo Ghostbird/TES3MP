@@ -26,6 +26,7 @@
 #include "../mwmechanics/aitravel.hpp"
 #include "../mwmechanics/creaturestats.hpp"
 #include "../mwmechanics/mechanicsmanagerimp.hpp"
+#include "../mwmechanics/movement.hpp"
 #include "../mwmechanics/spellcasting.hpp"
 #include "../mwmechanics/spellutil.hpp"
 
@@ -377,13 +378,22 @@ void LocalPlayer::updatePosition(bool forceUpdate)
 {
     MWBase::World *world = MWBase::Environment::get().getWorld();
     MWWorld::Ptr ptrPlayer = world->getPlayerPtr();
+    const MWMechanics::Movement& movement = ptrPlayer.getClass().getMovementSettings(ptrPlayer);
 
     static bool posWasChanged = false;
     static bool isJumping = false;
     static bool sentJumpEnd = true;
-    static float oldRot[2] = {0};
 
-    position = ptrPlayer.getRefData().getPosition();
+    const ESM::Position currentPosition = ptrPlayer.getRefData().getPosition();
+    bool positionChanged = false;
+    for (std::size_t i = 0; i < 3; ++i)
+    {
+        positionChanged = positionChanged || position.pos[i] != currentPosition.pos[i]
+            || position.rot[i] != currentPosition.rot[i];
+        direction.pos[i] = movement.mPosition[i];
+        direction.rot[i] = movement.mRotation[i];
+    }
+    position = currentPosition;
 
     bool posIsChanging = (direction.pos[0] != 0 || direction.pos[1] != 0 ||
         direction.rot[0] != 0 || direction.rot[1] != 0 || direction.rot[2] != 0);
@@ -398,11 +408,8 @@ void LocalPlayer::updatePosition(bool forceUpdate)
             isPlayingAnimation = false;
     }
 
-    if (forceUpdate || posIsChanging || posWasChanged)
+    if (forceUpdate || positionChanged || posIsChanging || posWasChanged)
     {
-        oldRot[0] = position.rot[0];
-        oldRot[1] = position.rot[2];
-
         posWasChanged = posIsChanging;
 
         if (!isJumping && !world->isOnGround(ptrPlayer) && !world->isFlying(ptrPlayer))
@@ -867,9 +874,6 @@ void LocalPlayer::die()
     MWMechanics::DynamicStat<float> health = playerPtr.getClass().getCreatureStats(playerPtr).getHealth();
     health.setCurrent(0);
     playerPtr.getClass().getCreatureStats(playerPtr).setHealth(health);
-
-    Main::get().getNetworking()->getPlayerPacket(ID_PLAYER_DEATH)->setPlayer(this);
-    Main::get().getNetworking()->getPlayerPacket(ID_PLAYER_DEATH)->Send();
 }
 
 void LocalPlayer::resurrect()

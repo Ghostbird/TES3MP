@@ -47,6 +47,9 @@
 #include "../mwmechanics/spellcasting.hpp"
 #include "../mwmechanics/weapontype.hpp"
 
+#include "../mwmp/Main.hpp"
+#include "../mwmp/MechanicsHelper.hpp"
+
 #include "../mwworld/actionopen.hpp"
 #include "../mwworld/actiontalk.hpp"
 #include "../mwworld/cellstore.hpp"
@@ -574,6 +577,13 @@ namespace MWClass
     void Npc::hit(const MWWorld::Ptr& ptr, float attackStrength, float attackWindUp, int type,
         const MWWorld::Ptr& victim, const osg::Vec3f& hitPosition, bool success) const
     {
+        mwmp::Attack* localAttack = mwmp::Main::isInitialized() ? MechanicsHelper::getLocalAttack(ptr) : nullptr;
+        if (localAttack)
+        {
+            localAttack->attackStrength = attackStrength;
+            if (!victim.isEmpty())
+                MechanicsHelper::assignAttackTarget(localAttack, victim);
+        }
         MWWorld::InventoryStore& inv = getInventoryStore(ptr);
         MWWorld::ContainerStoreIterator weaponslot = inv.getSlot(MWWorld::InventoryStore::Slot_CarriedRight);
         MWWorld::Ptr weapon;
@@ -603,6 +613,12 @@ namespace MWClass
                 attackWindUp, damage, false, hitPosition, false, MWMechanics::DamageSourceType::Melee);
             MWMechanics::reduceWeaponCondition(damage, false, weapon, ptr);
             MWMechanics::resistNormalWeapon(victim, ptr, weapon, damage);
+            if (localAttack)
+            {
+                localAttack->success = false;
+                localAttack->isHit = false;
+                localAttack->shouldSend = true;
+            }
             return;
         }
 
@@ -661,7 +677,7 @@ namespace MWClass
             damage *= store.find("fCombatKODamageMult")->mValue.getFloat();
 
         // Apply "On hit" enchanted weapons
-        MWMechanics::applyOnStrikeEnchantment(ptr, victim, weapon, hitPosition);
+        const bool appliedWeaponEnchantment = MWMechanics::applyOnStrikeEnchantment(ptr, victim, weapon, hitPosition);
 
         MWMechanics::applyElementalShields(ptr, victim);
 
@@ -675,6 +691,18 @@ namespace MWClass
 
         MWBase::Environment::get().getLuaManager()->onHit(ptr, victim, weapon, MWWorld::Ptr(), type, attackStrength,
             attackWindUp, damage, healthdmg, hitPosition, true, MWMechanics::DamageSourceType::Melee);
+
+        if (localAttack)
+        {
+            MechanicsHelper::assignAttackTarget(localAttack, victim);
+            localAttack->success = true;
+            localAttack->isHit = true;
+            localAttack->damage = damage;
+            localAttack->knockdown = otherstats.getKnockedDown();
+            localAttack->applyWeaponEnchantment = appliedWeaponEnchantment;
+            localAttack->hitPosition = MechanicsHelper::getPositionFromVector(hitPosition);
+            localAttack->shouldSend = true;
+        }
     }
 
     void Npc::onHit(const MWWorld::Ptr& ptr, const std::map<std::string, float>& damages, ESM::RefId object,

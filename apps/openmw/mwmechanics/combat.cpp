@@ -33,6 +33,9 @@
 #include "spellcasting.hpp"
 #include "spellresistance.hpp"
 
+#include "../mwmp/Main.hpp"
+#include "../mwmp/MechanicsHelper.hpp"
+
 namespace
 {
 
@@ -71,6 +74,16 @@ namespace MWMechanics
     bool blockMeleeAttack(const MWWorld::Ptr& attacker, const MWWorld::Ptr& blocker, const MWWorld::Ptr& weapon,
         float damage, float attackStrength)
     {
+        mwmp::Attack* localAttack = nullptr;
+        const mwmp::Attack* dedicatedAttack = nullptr;
+        if (mwmp::Main::isInitialized())
+        {
+            localAttack = MechanicsHelper::getLocalAttack(attacker);
+            dedicatedAttack = MechanicsHelper::getDedicatedAttack(blocker);
+            if (localAttack)
+                localAttack->block = false;
+        }
+
         if (!blocker.getClass().hasInventoryStore(blocker))
             return false;
 
@@ -136,8 +149,11 @@ namespace MWMechanics
         int x = std::clamp(static_cast<int>(blockerTerm - attackerTerm), iBlockMinChance, iBlockMaxChance);
 
         auto& prng = MWBase::Environment::get().getWorld()->getPrng();
-        if (Misc::Rng::roll0to99(prng) < x)
+        if ((dedicatedAttack && dedicatedAttack->block) || Misc::Rng::roll0to99(prng) < x)
         {
+            if (localAttack)
+                localAttack->block = true;
+
             MWBase::SoundManager* sndMgr = MWBase::Environment::get().getSoundManager();
             const ESM::RefId skill = shield->getClass().getEquipmentSkill(*shield);
             if (skill == ESM::Skill::LightArmor)
@@ -224,6 +240,7 @@ namespace MWMechanics
     void projectileHit(const MWWorld::Ptr& attacker, const MWWorld::Ptr& victim, MWWorld::Ptr weapon,
         const MWWorld::Ptr& projectile, const osg::Vec3f& hitPosition, float attackStrength, float attackWindUp)
     {
+        mwmp::Attack* localAttack = mwmp::Main::isInitialized() ? MechanicsHelper::getLocalAttack(attacker) : nullptr;
         MWBase::World* world = MWBase::Environment::get().getWorld();
         const MWWorld::Store<ESM::GameSetting>& gmst = world->getStore().get<ESM::GameSetting>();
 
@@ -247,6 +264,14 @@ namespace MWMechanics
                     attackStrength, attackWindUp, damage, false, hitPosition, false,
                     MWMechanics::DamageSourceType::Ranged);
                 MWMechanics::reduceWeaponCondition(damage, false, weapon, attacker);
+                if (localAttack)
+                {
+                    MechanicsHelper::assignAttackTarget(localAttack, victim);
+                    localAttack->attackStrength = attackStrength;
+                    localAttack->success = false;
+                    localAttack->isHit = false;
+                    localAttack->shouldSend = true;
+                }
                 return;
             }
 
@@ -291,6 +316,11 @@ namespace MWMechanics
 
         // Apply "On hit" effect of the projectile
         bool appliedEnchantment = applyOnStrikeEnchantment(attacker, victim, projectile, hitPosition, true);
+        if (localAttack)
+        {
+            localAttack->attackStrength = attackStrength;
+            localAttack->applyAmmoEnchantment = appliedEnchantment;
+        }
 
         if (validVictim)
         {
@@ -310,6 +340,17 @@ namespace MWMechanics
 
             MWBase::Environment::get().getLuaManager()->onHit(attacker, victim, weapon, projectile, 0, attackStrength,
                 attackWindUp, damage, true, hitPosition, true, MWMechanics::DamageSourceType::Ranged);
+
+            if (localAttack)
+            {
+                MechanicsHelper::assignAttackTarget(localAttack, victim);
+                localAttack->success = true;
+                localAttack->isHit = true;
+                localAttack->damage = damage;
+                localAttack->knockdown = victim.getClass().getCreatureStats(victim).getKnockedDown();
+                localAttack->hitPosition = MechanicsHelper::getPositionFromVector(hitPosition);
+                localAttack->shouldSend = true;
+            }
         }
     }
 

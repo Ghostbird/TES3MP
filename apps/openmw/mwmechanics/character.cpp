@@ -22,6 +22,12 @@
 #include <array>
 #include <unordered_set>
 
+#include "../mwmp/CellController.hpp"
+#include "../mwmp/LocalActor.hpp"
+#include "../mwmp/LocalPlayer.hpp"
+#include "../mwmp/Main.hpp"
+#include "../mwmp/MechanicsHelper.hpp"
+
 #include <components/esm/records.hpp>
 #include <components/misc/mathutil.hpp>
 #include <components/misc/resourcehelpers.hpp>
@@ -1164,7 +1170,9 @@ namespace MWMechanics
         // type.
         else if (groupname == "spellcast" && action == mAttackType + " release")
         {
-            if (mCanCast)
+            const bool multiplayerCastAuthority = !mwmp::Main::isInitialized() || mPtr == getPlayer()
+                || mwmp::Main::get().getCellController()->isLocalActor(mPtr);
+            if (mCanCast && multiplayerCastAuthority)
                 MWBase::Environment::get().getWorld()->castSpell(mPtr, mCastingScriptedSpell);
             mCastingScriptedSpell = false;
             mCanCast = false;
@@ -1558,6 +1566,19 @@ namespace MWMechanics
                         }
                     }
 
+                    if (!isMagicItem && !spellid.empty() && mCanCast && mwmp::Main::isInitialized())
+                    {
+                        if (mwmp::Cast* localCast = MechanicsHelper::getLocalCast(mPtr))
+                        {
+                            MechanicsHelper::resetCast(localCast);
+                            localCast->type = mwmp::Cast::REGULAR;
+                            localCast->spellId = spellid.toString();
+                            localCast->pressed = true;
+                            localCast->shouldSend = true;
+                            localCast->instant = !mAnimation->hasAnimation("spellcast");
+                        }
+                    }
+
                     if (isMagicItem && !Settings::game().mUseMagicItemAnimations)
                     {
                         world->breakInvisibility(mPtr);
@@ -1692,12 +1713,25 @@ namespace MWMechanics
                             {
                                 mAttackType = getMovementBasedAttackType();
                             }
+
+                            if (mwmp::Main::isInitialized())
+                            {
+                                if (mwmp::Attack* localAttack = MechanicsHelper::getLocalAttack(mPtr))
+                                    localAttack->attackAnimation = mAttackType;
+                            }
                         }
                         else if (aiInactive)
                         {
                             mAttackType = getDesiredAttackType();
                             if (mAttackType == "")
                                 mAttackType = getRandomAttackType();
+                        }
+
+                        if (mPtr != getPlayer() && mwmp::Main::isInitialized())
+                        {
+                            if (const mwmp::Attack* dedicatedAttack = MechanicsHelper::getDedicatedAttack(mPtr);
+                                dedicatedAttack != nullptr && !dedicatedAttack->attackAnimation.empty())
+                                mAttackType = dedicatedAttack->attackAnimation;
                         }
 
                         // else if (mPtr != getPlayer()) use mAttackType set by AiCombat
@@ -2810,6 +2844,16 @@ namespace MWMechanics
         if (mDeathState == CharState_None)
         {
             playRandomDeath();
+
+            // Send the selected death animation only when this client owns the actor.
+            // This belongs here rather than in playRandomDeath(), which is also used
+            // to restore animations and may run more than once for an existing death.
+            if (mPtr == getPlayer())
+                mwmp::Main::get().getLocalPlayer()->sendDeath(static_cast<char>(mDeathState));
+            else if (!mPtr.getClass().getCreatureStats(mPtr).isDeathAnimationFinished()
+                && mwmp::Main::get().getCellController()->isLocalActor(mPtr))
+                mwmp::Main::get().getCellController()->getLocalActor(mPtr)->sendDeath(static_cast<char>(mDeathState));
+
             resetCurrentIdleState();
             return Result_DeathAnimStarted;
         }

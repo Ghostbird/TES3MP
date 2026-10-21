@@ -88,13 +88,22 @@ void LocalActor::updateCell()
 
 void LocalActor::updatePosition(bool forceUpdate)
 {
-    bool posIsChanging = false;
+    const MWMechanics::Movement& movement = ptr.getClass().getMovementSettings(ptr);
+    const ESM::Position currentPosition = ptr.getRefData().getPosition();
+    bool positionChanged = false;
+    for (std::size_t i = 0; i < 3; ++i)
+    {
+        positionChanged = positionChanged || position.pos[i] != currentPosition.pos[i]
+            || position.rot[i] != currentPosition.rot[i];
+        direction.pos[i] = movement.mPosition[i];
+        direction.rot[i] = movement.mRotation[i];
+    }
+
+    bool posIsChanging = positionChanged;
 
     if (creatureStats.mDead)
     {
-        ESM::Position ptrPosition = ptr.getRefData().getPosition();
-        posIsChanging = position.pos[0] != ptrPosition.pos[0] || position.pos[1] != ptrPosition.pos[1] ||
-            position.pos[2] != ptrPosition.pos[2];
+        posIsChanging = positionChanged;
     }
     else
     {
@@ -106,7 +115,7 @@ void LocalActor::updatePosition(bool forceUpdate)
     if (forceUpdate || posIsChanging || posWasChanged)
     {
         posWasChanged = posIsChanging;
-        position = ptr.getRefData().getPosition();
+        position = currentPosition;
         mwmp::Main::get().getNetworking()->getActorList()->addPositionActor(*this);
     }
 }
