@@ -151,6 +151,8 @@ namespace
         LocalVariables mLocals;
         std::map<ESM::RefId, GlobalVariables> mMembers;
         Messages mMessages;
+        unsigned short mContextType = Interpreter::Context::CONSOLE;
+        std::string mCurrentScriptName;
 
     public:
         const Messages& getMessages() { return mMessages; }
@@ -217,6 +219,14 @@ namespace
         int getPCBounty() const override { return {}; }
 
         std::string_view getCurrentCellName() const override { return {}; }
+
+        unsigned short getContextType() const override { return mContextType; }
+
+        std::string getCurrentScriptName() const override { return mCurrentScriptName; }
+
+        void trackContextType(unsigned short contextType) override { mContextType = contextType; }
+
+        void trackCurrentScriptName(const std::string& name) override { mCurrentScriptName = name; }
 
         int getMemberShort(ESM::RefId id, std::string_view name, bool global) const override
         {

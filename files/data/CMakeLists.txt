@@ -262,6 +262,11 @@ set(BUILTIN_DATA_FILES
     mygui/openmw_postprocessor_hud.layout
     mygui/openmw_postprocessor_hud.skin.xml
     mygui/openmw_jail_screen.layout
+    mygui/tes3mp_chat.layout
+    mygui/tes3mp_chat.skin.xml
+    mygui/tes3mp_dialog_list.layout
+    mygui/tes3mp_login.layout
+    mygui/tes3mp_text_input.layout
     mygui/OpenMWResourcePlugin.xml
     mygui/skins.xml
 )

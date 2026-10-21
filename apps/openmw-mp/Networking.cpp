@@ -187,6 +187,9 @@ void Networking::processPlayerPacket(RakNet::Packet *packet)
         return;
     }
 
+    // Base info is handled and forwarded above; it has no generic packet processor.
+    if (packet->data[0] == ID_PLAYER_BASEINFO)
+        return;
 
     if (!PlayerProcessor::Process(*packet))
         LOG_MESSAGE_SIMPLE(TimedLog::LOG_WARN, "Unhandled PlayerPacket with identifier %i has arrived", packet->data[0]);

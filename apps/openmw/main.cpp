@@ -66,6 +66,7 @@ bool parseOptions(int argc, char** argv, OMW::Engine& engine, Files::Configurati
     typedef std::vector<std::string> StringsVector;
 
     bpo::options_description desc = OpenMW::makeOptionsDescription();
+    mwmp::Main::optionsDesc(&desc);
     bpo::variables_map variables;
 
     Files::parseArgs(argc, argv, variables, desc);
@@ -203,7 +204,7 @@ bool parseOptions(int argc, char** argv, OMW::Engine& engine, Files::Configurati
 
         Configure multiplayer using parsed variables
     */
-    mwmp::Main::configure(&variables);
+    mwmp::Main::configure(variables);
     /*
         End of tes3mp addition
     */
