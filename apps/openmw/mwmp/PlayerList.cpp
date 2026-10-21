@@ -46,6 +46,7 @@ DedicatedPlayer *PlayerList::newPlayer(RakNet::RakNetGUID guid)
 
 void PlayerList::deletePlayer(RakNet::RakNetGUID guid)
 {
+    playerList[guid]->removeMarker();
     if (playerList[guid]->reference)
         playerList[guid]->deleteReference();
 
@@ -55,8 +56,20 @@ void PlayerList::deletePlayer(RakNet::RakNetGUID guid)
 
 void PlayerList::cleanUp()
 {
-    for (auto &playerEntry : playerList)
-        delete playerEntry.second;
+    for (auto& playerEntry : playerList)
+    {
+        DedicatedPlayer* player = playerEntry.second;
+        if (player == nullptr)
+            continue;
+
+        player->removeMarker();
+        if (player->reference != nullptr)
+            player->deleteReference();
+
+        delete player;
+    }
+
+    playerList.clear();
 }
 
 DedicatedPlayer *PlayerList::getPlayer(RakNet::RakNetGUID guid)

@@ -88,6 +88,8 @@
 #include "profile.hpp"
 
 #include "mwmp/Main.hpp"
+#include "mwmp/PlayerList.hpp"
+#include "mwmp/CellController.hpp"
 #include "mwmp/GUIController.hpp"
 
 namespace
@@ -416,13 +418,16 @@ OMW::Engine::Engine(Files::ConfigurationManager& configurationManager)
 
 OMW::Engine::~Engine()
 {
-    if (mwmp::Main::isInitialized())
+    const bool destroyMultiplayer = mwmp::Main::isInitialized();
+
+    if (destroyMultiplayer)
     {
         mwmp::Main::get().getGUIController()->cleanUp();
-        mwmp::Main::destroy();
+        // Remove multiplayer-owned world references while the world, cell
+        // controller and window manager are still alive.
+        mwmp::PlayerList::cleanUp();
+        mwmp::Main::get().getCellController()->uninitializeCells();
     }
-    LOG_QUIT();
-
     if (mScreenCaptureOperation != nullptr)
     {
         mScreenCaptureOperation->stop();
@@ -434,6 +439,16 @@ OMW::Engine::~Engine()
     mDialogueManager = nullptr;
     mJournal = nullptr;
     mWindowManager = nullptr;
+
+    // Window destruction uses TES3MP GUI callbacks (for example, map marker
+    // delegates). Keep Main alive until the WindowManager has been destroyed.
+    if (destroyMultiplayer)
+        mwmp::Main::destroy();
+
+    // TES3MP's Main destructor logs its shutdown and tears down networking.
+    // Keep the shared logger alive until that cleanup has completed.
+    LOG_QUIT();
+
     mScriptManager = nullptr;
     mWorld = nullptr;
     mStereoManager = nullptr;
