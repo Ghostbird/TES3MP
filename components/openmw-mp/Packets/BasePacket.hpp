@@ -2,9 +2,13 @@
 #define OPENMW_BASEPACKET_HPP
 
 #include <string>
+#include <exception>
 #include <RakNetTypes.h>
 #include <BitStream.h>
 #include <PacketPriority.h>
+
+#include <components/esm/path.hpp>
+#include <components/esm/refid.hpp>
 
 
 namespace mwmp
@@ -117,6 +121,47 @@ namespace mwmp
                     str = std::string();
             }
             return res;
+        }
+
+        bool RW(ESM::RefId& refId, bool write, bool compress = false)
+        {
+            std::string value = write ? refId.serializeText() : std::string();
+            if (!RW(value, write, compress))
+            {
+                if (!write)
+                    refId = ESM::RefId();
+                return false;
+            }
+
+            if (!write)
+            {
+                try
+                {
+                    refId = ESM::RefId::deserializeText(value);
+                }
+                catch (const std::exception&)
+                {
+                    refId = ESM::RefId();
+                    packetValid = false;
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        bool RW(ESM::Path& path, bool write, bool compress = false)
+        {
+            std::string value = write ? path.getOriginal() : std::string();
+            if (!RW(value, write, compress))
+            {
+                if (!write)
+                    path.clear();
+                return false;
+            }
+
+            if (!write)
+                path.set(value);
+            return true;
         }
 
     protected:
